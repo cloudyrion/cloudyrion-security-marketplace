@@ -1,0 +1,14 @@
+{
+  "name": "cloudyrion-security",
+  "description": "Comprehensive security assessment suite for Claude Code — code review, threat modeling, API security, compliance mapping, SBOM generation, and more. Includes quick-scan for developers and full audit suite for security professionals.",
+  "version": "1.0.0",
+  "author": {
+    "name": "CLOUDYRION",
+    "url": "https://cloudyrion.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "security", "sast", "code-review", "threat-model", "compliance",
+    "owasp", "sbom", "nis2", "dora", "iso-27001", "devsecops"
+  ]
+}
