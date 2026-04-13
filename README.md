@@ -162,4 +162,4 @@ We welcome contributions! To add or improve a skill:
 
 ## License
 
-[MIT](plugins/cloudyrion-security/LICENSE) — CLOUDYRION
+[MIT](plugins/cloudyrion-security/LICENSE) — CLOUDYRION GmbH
