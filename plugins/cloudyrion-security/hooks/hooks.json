@@ -1,0 +1,33 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path // empty') && [ -n \"$FILE\" ] && [ -f \"$FILE\" ] && grep -nEi '(api[_-]?key|api[_-]?secret|password|passwd|secret[_-]?key|access[_-]?token|private[_-]?key|auth[_-]?token)\\s*[=:]\\s*[\"'\"'\"'][^\"'\"'\"']+' \"$FILE\" | head -5 | while read -r line; do echo \"WARNING: Possible hardcoded secret: $line\"; done || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path // empty') && [ -n \"$FILE\" ] && case \"$(basename \"$FILE\")\" in package.json|requirements.txt|pyproject.toml|go.mod|Cargo.toml|Gemfile) echo 'Dependency file changed. Consider running /cloudyrion-security:sbom to check for vulnerabilities.' ;; esac || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command // empty' | grep -q 'gh pr create' && echo 'Opening a PR — consider running /cloudyrion-security:quick-scan first to catch security issues.' || true"
+          }
+        ]
+      }
+    ]
+  }
+}
