@@ -163,3 +163,23 @@ We welcome contributions! To add or improve a skill:
 ## License
 
 [MIT](plugins/cloudyrion-security/LICENSE) — CLOUDYRION GmbH
+
+## Disclaimer
+
+CLOUDYRION Security is an AI-assisted security tool, not a replacement for professional security audits or compliance certifications.
+
+**This plugin must not be used to:**
+
+- Attack, probe, or exploit systems without explicit written authorization
+- Replace professional penetration testing or certified security audits
+- Certify compliance with any regulatory framework (NIS2, DORA, ISO 27001, GDPR, etc.)
+- Make production security decisions without professional validation
+
+**Important limitations:**
+
+- AI-generated findings may contain false positives, false negatives, or inaccuracies
+- The absence of findings does not mean the absence of vulnerabilities
+- Compliance mappings are informational only, not formal assessments
+- Offensive security skills (attack scenarios, pentest playbooks) are for authorized testing only
+
+Use of this plugin is at your own risk. See [DISCLAIMER.md](plugins/cloudyrion-security/DISCLAIMER.md) for full terms.
