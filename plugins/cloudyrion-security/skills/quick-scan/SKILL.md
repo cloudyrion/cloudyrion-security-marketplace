@@ -47,7 +47,7 @@ Scan for:
 
 For each detected package manager:
 - **npm/yarn**: Run `npm audit --json` or check `package-lock.json`
-- **pip/poetry**: Run `pip audit` if available, or check against OSV.dev
+- **pip/poetry**: Run `pip-audit` if available, or check against OSV.dev
 - **Go**: Run `govulncheck` if available
 - **Cargo**: Run `cargo audit` if available
 - **Other**: List dependencies and flag any with known CVEs from recent advisories

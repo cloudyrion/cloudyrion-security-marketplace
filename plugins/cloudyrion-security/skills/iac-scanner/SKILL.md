@@ -85,7 +85,7 @@ Run the best supplementary scanner for the detected IaC type:
 
 ```bash
 # Terraform — tfsec (fast, good HCL understanding)
-if [ -n "$(find . -name '*.tf' -maxdepth 3)" ] && command -v tfsec &>/dev/null; then
+if [ -n "$(find "$REPO_ROOT" -maxdepth 3 -name '*.tf' 2>/dev/null)" ] && command -v tfsec &>/dev/null; then
   tfsec "$REPO_ROOT" --format json > "$REPORT_DIR/tfsec-results-${DATE}.json" 2>/dev/null
 fi
 
@@ -94,9 +94,35 @@ if command -v trivy &>/dev/null; then
   trivy config "$REPO_ROOT" --format json > "$REPORT_DIR/trivy-config-${DATE}.json" 2>/dev/null
 fi
 
-# Dockerfile — hadolint
-if [ -f "$REPO_ROOT/Dockerfile" ] && command -v hadolint &>/dev/null; then
-  hadolint "$REPO_ROOT/Dockerfile" --format json > "$REPORT_DIR/hadolint-${DATE}.json" 2>/dev/null
+# Dockerfile — hadolint (every Dockerfile, not just the repo root one)
+if command -v hadolint &>/dev/null; then
+  : > "$REPORT_DIR/hadolint-${DATE}.json"   # truncate so same-day re-runs are idempotent
+  find "$REPO_ROOT" -maxdepth 4 -name 'Dockerfile*' -not -path '*/node_modules/*' 2>/dev/null \
+    | while read -r dockerfile; do
+        hadolint "$dockerfile" --format json >> "$REPORT_DIR/hadolint-${DATE}.json" 2>/dev/null
+      done
+fi
+
+# CloudFormation — cfn-lint (templates carry AWSTemplateFormatVersion)
+if command -v cfn-lint &>/dev/null; then
+  : > "$REPORT_DIR/cfn-lint-${DATE}.json"   # truncate so same-day re-runs are idempotent
+  find "$REPO_ROOT" -maxdepth 4 \( -name '*.yaml' -o -name '*.yml' -o -name '*.json' \) \
+    -not -path '*/.terraform/*' -not -path '*/node_modules/*' 2>/dev/null \
+    | while read -r tmpl; do
+        grep -q 'AWSTemplateFormatVersion' "$tmpl" 2>/dev/null \
+          && cfn-lint "$tmpl" -f json >> "$REPORT_DIR/cfn-lint-${DATE}.json" 2>/dev/null
+      done
+fi
+
+# Kubernetes — kubesec (per-manifest risk scoring)
+if command -v kubesec &>/dev/null; then
+  : > "$REPORT_DIR/kubesec-${DATE}.json"   # truncate so same-day re-runs are idempotent
+  find "$REPO_ROOT" -maxdepth 4 \( -name '*.yaml' -o -name '*.yml' \) \
+    -not -path '*/.terraform/*' -not -path '*/node_modules/*' 2>/dev/null \
+    | while read -r manifest; do
+        grep -q '^kind:' "$manifest" 2>/dev/null \
+          && kubesec scan "$manifest" >> "$REPORT_DIR/kubesec-${DATE}.json" 2>/dev/null
+      done
 fi
 ```
 

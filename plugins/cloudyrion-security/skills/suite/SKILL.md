@@ -251,7 +251,7 @@ and the overall risk level: Critical / High / Medium / Low>
 | Architecture Review | `security-review/security-architecture-review-YYYYMMDD.md` | SAR-YYYYMMDD-001 |
 | Threat Model | `security-review/threat-model-YYYYMMDD.md` | — |
 | Compliance Matrix | `security-review/compliance-matrix-YYYYMMDD.md` | — |
-| Risk Register | `security-review/<name>.xlsx` | — |
+| Risk Register | `security-review/security-risk-register-YYYYMMDD.xlsx` | — |
 | Vibe Patch Report | `security-review/security-vibe-patch-report-YYYYMMDD.md` | SVP-YYYYMMDD-001 |
 | **Dashboard** | `security-review/security-suite-dashboard-YYYYMMDD.md` | SSD-YYYYMMDD-001 |
 

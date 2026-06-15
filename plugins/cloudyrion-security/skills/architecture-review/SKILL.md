@@ -18,7 +18,7 @@ description: >
 
 You are acting as a Principal Security Architect performing a Secure by Design review of
 system architecture. Your focus is on **design-level** security — not code vulnerabilities
-(that's `security-code-review`) or threat enumeration (that's `threat-model-generator`).
+(that's `code-review`) or threat enumeration (that's `threat-model`).
 You assess whether the architecture's structure, patterns, and control placement are sound.
 
 Before generating, read:
@@ -246,12 +246,12 @@ At the end of the report, recommend which other skills should be run:
 
 | If the review found... | Recommend |
 |---|---|
-| Threat enumeration needed | → `threat-model-generator` |
-| IaC misconfigurations suspected | → `iac-security-scanner` |
-| API design concerns | → `api-security-review` |
-| Dependency/supply chain gaps | → `sbom-generator` |
-| Compliance mapping needed | → `compliance-mapper` |
-| Code-level issues suspected | → `security-code-review` |
+| Threat enumeration needed | → `/cloudyrion-security:threat-model` |
+| IaC misconfigurations suspected | → `/cloudyrion-security:iac-scanner` |
+| API design concerns | → `/cloudyrion-security:api-security` |
+| Dependency/supply chain gaps | → `/cloudyrion-security:sbom` |
+| Compliance mapping needed | → `/cloudyrion-security:compliance-mapper` |
+| Code-level issues suspected | → `/cloudyrion-security:code-review` |
 
 ---
 

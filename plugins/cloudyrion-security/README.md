@@ -1,6 +1,6 @@
 # CLOUDYRION Security
 
-Comprehensive security assessment suite for Claude Code. 13 skills covering code review, threat modeling, API security, compliance mapping, SBOM generation, and more.
+Comprehensive security assessment suite for Claude Code. 12 skills covering code review, threat modeling, API security, compliance mapping, SBOM generation, and more.
 
 ## Installation
 

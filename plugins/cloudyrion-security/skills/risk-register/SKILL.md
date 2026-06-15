@@ -181,7 +181,7 @@ If QA mode: add **QA Summary** sheet (Sheet 3, shifting others down).
 - **Auto-filter**: Enable on all columns
 - **Bold**: Risk title column always bold
 - **Column widths**: Set explicitly per column (no auto-width)
-- Save to the project's `security-review/` directory, or current working directory if no project
+- Save to the project's `security-review/` directory as `security-risk-register-YYYYMMDD.xlsx` (use the current date; fall back to the current working directory if not in a git repo)
 
 ---
 

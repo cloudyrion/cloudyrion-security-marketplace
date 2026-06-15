@@ -183,11 +183,11 @@ estimated effort.>
 
 | If this review found... | Run this skill |
 |---|---|
-| Threats need enumeration | `threat-model-generator` |
-| IaC misconfigs suspected | `iac-security-scanner` |
-| API design concerns | `api-security-review` |
-| Supply chain gaps | `sbom-generator` |
-| Compliance mapping needed | `compliance-mapper` |
+| Threats need enumeration | `/cloudyrion-security:threat-model` |
+| IaC misconfigs suspected | `/cloudyrion-security:iac-scanner` |
+| API design concerns | `/cloudyrion-security:api-security` |
+| Supply chain gaps | `/cloudyrion-security:sbom` |
+| Compliance mapping needed | `/cloudyrion-security:compliance-mapper` |
 
 ---
 
