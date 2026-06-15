@@ -1,0 +1,18 @@
+# Security skill outputs (generated when a skill runs against a target repo)
+security-review/
+sbom/
+*.sarif
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Tooling artifacts that may appear during local testing
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/

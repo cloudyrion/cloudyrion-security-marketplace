@@ -6,6 +6,8 @@
     "name": "CLOUDYRION",
     "url": "https://cloudyrion.com"
   },
+  "homepage": "https://cloudyrion.com",
+  "repository": "https://github.com/cloudyrion/cloudyrion-security-marketplace",
   "license": "MIT",
   "keywords": [
     "security", "sast", "code-review", "threat-model", "compliance",

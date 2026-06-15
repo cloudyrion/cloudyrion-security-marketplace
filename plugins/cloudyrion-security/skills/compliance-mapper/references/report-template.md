@@ -85,7 +85,7 @@ critical gaps count, timeline pressure (regulatory deadlines), key recommendatio
 | Regulatory Deadline | <if applicable> |
 | Remediation | <specific action> |
 | Effort | Low (days) / Medium (weeks) / High (months) |
-| Related Skill | <sbom-generator / iac-security-scanner / etc. if applicable> |
+| Related Skill | <sbom / iac-scanner / etc. if applicable> |
 
 ---
 

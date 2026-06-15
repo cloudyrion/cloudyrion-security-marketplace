@@ -31,7 +31,7 @@ Before generating, read the relevant framework reference(s):
 | Input | Source | What to extract |
 |---|---|---|
 | Security controls list | User-provided or existing policy | Control ID, description, implementation status |
-| Findings from other skills | `security-code-review`, `iac-security-scanner`, `api-security-review`, `threat-model` | Finding ID, CWE, category, remediation status |
+| Findings from other skills | `code-review`, `iac-scanner`, `api-security`, `threat-model` | Finding ID, CWE, category, remediation status |
 | Risk register | Existing risk register (Excel/Markdown) | Risk ID, controls, status |
 | Verbal description | Interview | "We have MFA, encrypt at rest, run quarterly pentests..." |
 
@@ -151,7 +151,8 @@ If inside a git repo: `<repo-root>/security-review/compliance-matrix-YYYYMMDD.md
 Otherwise: current working directory.
 
 For complex outputs (many frameworks × many controls), also generate an Excel file using
-the `xlsx` skill for a filterable, sortable matrix.
+the `xlsx` skill for a filterable, sortable matrix. The Markdown matrix is the primary
+deliverable — if the `xlsx` skill is unavailable, skip the Excel export and note it in the report.
 
 ---
 
@@ -167,7 +168,7 @@ Group gaps into implementation phases:
 | P3 — Low | 6–12 months | Maturity improvements | |
 
 For each gap, note:
-- Which other skills can help (e.g. "Run `sbom-generator` to address CRA Annex I §1")
+- Which other skills can help (e.g. "Run `/cloudyrion-security:sbom` to address CRA Annex I §1")
 - Whether the gap is a policy gap (needs documentation) or a technical gap (needs implementation)
 - Estimated effort: Low (days) / Medium (weeks) / High (months)
 
