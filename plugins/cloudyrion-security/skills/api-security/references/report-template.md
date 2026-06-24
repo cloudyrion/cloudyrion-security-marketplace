@@ -13,14 +13,14 @@ Replace all `<placeholders>`.
 |----------------|-------------------------------------------|
 | Document ID    | API-YYYYMMDD-001                          |
 | Date           | YYYY-MM-DD                                |
-| Author         | <name (email)>                            |
+| Author         | <Firstname Lastname (email@domain.com)>   |
 | Repository     | <repo name>                               |
 | API Name       | <API name / service>                      |
-| API Type       | REST | GraphQL | gRPC | WebSocket         |
+| API Type       | REST / GraphQL / gRPC / WebSocket         |
 | Spec File      | <path to OpenAPI spec or "N/A">           |
 | Framework      | <detected framework>                      |
 | Classification | CONFIDENTIAL — Internal Security Use Only |
-| Status         | DRAFT | FINAL                             |
+| Status         | DRAFT / FINAL                             |
 
 ---
 
@@ -37,6 +37,7 @@ Replace all `<placeholders>`.
 | High     |       |                |          |         |
 | Medium   |       |                |          |         |
 | Low      |       |                |          |         |
+| Info     |       |                |          |         |
 
 ---
 
@@ -71,7 +72,7 @@ Replace all `<placeholders>`.
 | API7 | SSRF | N | | |
 | API8 | Misconfiguration | N | | |
 | API9 | Inventory Mgmt | N | | |
-| API10 | Third-Party APIs | N | | |
+| API10 | Unsafe Consumption of APIs | N | | |
 
 ---
 
@@ -82,10 +83,10 @@ Replace all `<placeholders>`.
 | Field       | Value                                    |
 |-------------|------------------------------------------|
 | ID          | FINDING-001                              |
-| Severity    | Critical / High / Medium / Low           |
+| Severity    | Critical / High / Medium / Low / Info     |
 | Tag         | [BLOCK] / [WARN] / [INFO]               |
 | OWASP API   | API1–API10                               |
-| CWE         | CWE-<id> — <n>                        |
+| CWE         | CWE-<id> — <CWE name>                    |
 | Endpoint    | `METHOD /path`                           |
 | Location    | `<file>:<line>` (if code reviewed)       |
 | Source      | Spec analysis / Code review / Both       |
@@ -151,8 +152,8 @@ Replace all `<placeholders>`.
 
 | Field | Value |
 |-------|-------|
-| Name | <n> |
+| Name | <name> |
 | Role | API Security Specialist |
 | Date | <YYYY-MM-DD> |
-| Signature | <n> |
+| Signature | <signature> |
 ```

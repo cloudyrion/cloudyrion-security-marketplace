@@ -6,10 +6,9 @@ description: >
   formal API Security Report with per-endpoint findings and remediation guidance. Use this
   skill whenever the user asks to review an API for security, audit an OpenAPI spec, check
   REST/GraphQL endpoints for vulnerabilities, assess API auth patterns, or validate API
-  design against security best practices. Also trigger on: 'API security', 'OWASP API Top 10',
-  'OpenAPI review', 'Swagger audit', 'endpoint security', 'API pentest review', 'REST security',
-  'GraphQL security', 'is my API secure', or any request to find security issues in API
-  definitions or implementations.
+  design against security best practices. Also trigger on: 'API security review', 'OWASP API Top 10',
+  'audit OpenAPI/Swagger spec', 'endpoint/REST/GraphQL security', 'API pentest review', or any
+  request to find security issues in API definitions or implementations.
 ---
 
 # API Security Review
@@ -39,7 +38,7 @@ mkdir -p "$REPORT_DIR"
 | OpenAPI/Swagger spec (`.yaml`/`.json`) | Endpoints, methods, parameters, schemas, auth schemes, response shapes |
 | API code (routes/controllers) | Endpoint implementations, middleware, auth logic, DB queries, validation |
 | Both spec + code | Cross-reference: does implementation match spec? Gaps = findings |
-| Verbal description | Structured interview (see below) |
+| Verbal description | Ask targeted questions to build the endpoint inventory: What endpoints/methods exist? What auth scheme protects each? What data is returned and to whom? Are rate limits/pagination enforced? Which endpoints touch PII or money? Then proceed as if a spec were provided. |
 
 If code is provided, detect the framework:
 
@@ -85,7 +84,7 @@ evaluate all 10 categories:
 | API7 | Server-Side Request Forgery (SSRF) | Does the API fetch user-supplied URLs? |
 | API8 | Security Misconfiguration | CORS, error verbosity, unnecessary methods, default creds? |
 | API9 | Improper Inventory Management | Deprecated/undocumented endpoints still reachable? |
-| API10 | Unsafe Consumption of Third-Party APIs | Does the API trust third-party responses without validation? |
+| API10 | Unsafe Consumption of APIs | Does the API trust third-party/upstream responses without validation? |
 
 ### GraphQL-specific checks (if applicable)
 
@@ -106,18 +105,19 @@ evaluate all 10 categories:
 | **API3 Property-Level** | Check response serialization: are internal fields (password_hash, is_admin, internal_id) excluded? | Excessive data in response |
 | **API4 Unrestricted Resource** | Check if endpoints return unbounded lists. Is pagination enforced? Max page size? | Missing pagination limits |
 | **API5 BFLA** | List all admin routes. Check: role/permission check via middleware or inline? | Missing function-level auth |
-| **API6 SSRF** | Grep for user-supplied URLs fetched server-side. Check: URL validation, scheme allowlist, private IP blocking. | Unvalidated server-side fetch |
-| **API7 Security Misconfig** | Check: CORS policy, error verbosity, debug mode, default credentials, missing security headers. | Insecure defaults |
-| **API8 Injection** | Trace all user inputs to sinks (SQL, shell, template, LDAP). Check: parameterized queries, input validation. | Injection vector |
+| **API6 Business Flows** | Identify sensitive business flows (account creation, checkout, password reset). Check: anti-automation (CAPTCHA, device fingerprinting), rate/velocity limits. | Unprotected sensitive business flow |
+| **API7 SSRF** | Grep for user-supplied URLs fetched server-side. Check: URL validation, scheme allowlist, private IP blocking. | Unvalidated server-side fetch |
+| **API8 Security Misconfig** | Check: CORS policy, error verbosity, debug mode, default credentials, missing security headers. | Insecure defaults |
 | **API9 Inventory** | Compare spec endpoints vs code routes. Grep for undocumented routes. | Undocumented/shadow APIs |
 | **API10 Unsafe Consumption** | Check all outbound API calls: TLS verified? Response validated? Timeouts set? | Unsafe third-party integration |
+| **Input Validation** | Trace all user inputs to sinks (SQL, shell, template, LDAP). Check: parameterized queries, input validation. | Injection vector |
 
 ### GraphQL-Specific Checks (apply per category above)
 
 - **API1**: Check field-level authorization (can user A query user B fields?)
-- **API3**: Check introspection exposure in production
 - **API4**: Check query depth limits, complexity limits, batch query limits
-- **API8**: Check for injection in variables passed to resolvers
+- **API8 (Security Misconfiguration) / API9 (Improper Inventory Management)**: Check introspection exposure in production (full schema disclosure)
+- **Input Validation**: Check for injection in variables passed to resolvers
 
 ## Step 3 — Deep Analysis Areas
 
@@ -162,7 +162,7 @@ If both spec and code are available, cross-reference:
 |---|---|
 | Endpoint in code but not in spec | Undocumented API — API9 |
 | Auth in spec but not enforced in code | Missing auth middleware — API2 |
-| Schema validation in spec but no runtime check | Input not validated — API3/API8 |
+| Schema validation in spec but no runtime check | Input not validated — API3 (mass assignment) / input validation |
 | Deprecated endpoint still routable | Shadow API — API9 |
 | Response schema wider in code than spec | Excessive data exposure — API3 |
 
@@ -170,7 +170,15 @@ If both spec and code are available, cross-reference:
 
 ## Step 5 — Severity Scoring
 
-Same Likelihood × Impact matrix as other skills.
+Rate each finding with the Likelihood × Impact matrix:
+
+| Likelihood \ Impact | Low | Medium | High |
+|---|---|---|---|
+| **High** | Medium | High | Critical |
+| **Medium** | Low | Medium | High |
+| **Low** | Info | Low | Medium |
+
+The severity ladder is Critical / High / Medium / Low / Info.
 
 **API-specific likelihood factors:** Is the endpoint public? Does it handle PII? Is it
 in the critical business path? Does exploitation require authentication?
@@ -182,8 +190,34 @@ business logic abuse (financial transactions, data deletion).
 
 ## Step 6 — Generate Report
 
-Read `references/report-template.md` and write to:
-`$REPORT_DIR/api-security-report-${DATE}.md`
+Set up the report location and metadata before writing:
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+DATE=$(date +%Y%m%d)
+REPORT_DIR="$REPO_ROOT/security-review"
+mkdir -p "$REPORT_DIR"
+AUTHOR_NAME=$(git config user.name 2>/dev/null || echo "N/A")
+AUTHOR_EMAIL=$(git config user.email 2>/dev/null || echo "N/A")
+REPO_NAME=$(basename "$REPO_ROOT")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "N/A")
+COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
+REPORT="$REPORT_DIR/api-security-report-${DATE}.md"
+```
+
+Read `references/report-template.md` and write to `$REPORT`.
+
+Tag every finding using this mapping:
+
+- **[BLOCK]** = Critical/High — must-fix before release
+- **[WARN]** = Medium — should-fix
+- **[INFO]** = Low/Info — defense-in-depth
+
+After writing, echo the final path so the user knows where it landed:
+
+```bash
+echo "Report written to: $REPORT"
+```
 
 Document ID: `API-YYYYMMDD-001`
 

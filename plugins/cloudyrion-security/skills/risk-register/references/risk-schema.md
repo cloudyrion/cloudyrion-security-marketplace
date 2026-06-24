@@ -13,11 +13,11 @@ Every risk entry MUST contain these 10 mandatory fields plus 3 supplementary fie
 | 5 | Likelihood | 1-5 scale | 4 (Likely) |
 | 6 | Impact | 1-5 scale | 5 (Catastrophic) |
 | 7 | Risk Rating | L x I with label | 20 (Critical) |
-| 8 | Short-term Mitigation | Actionable, <30 days | Deploy WAF SQLi rule on API Gateway |
-| 9 | Long-term Mitigation | Strategic, 30-180 days | Migrate to parameterized ORM layer |
-| 10 | MITRE ATT&CK | 3-6 technique IDs | T1190, T1059.004, T1005, T1567 |
+| 8 | Short-term Mitigation | Actionable, 0-90 days | Deploy WAF SQLi rule on API Gateway |
+| 9 | Long-term Mitigation | Strategic, 90-365 days (3-12 months) | Migrate to parameterized ORM layer |
+| 10 | MITRE ATT&CK | `Tactic: Technique ID – Technique Name` (3-6 techniques) | Initial Access: T1190 – Exploit Public-Facing Application |
 
-**Domains:** APP, NET, CLOUD, IAM, DATA, OT, AI, CUSTOM
+**Domains:** NET, APP, CLOUD, IAM, DATA, OPS, OT, AI, GEN, CUSTOM
 
 ## Likelihood Scale
 
@@ -50,9 +50,11 @@ Every risk entry MUST contain these 10 mandatory fields plus 3 supplementary fie
 
 ## Supplementary Fields
 
+These three fields are supplementary to the 10 mandatory fields, but are **expected on every client-facing register**; populate them unless genuinely not applicable (the SKILL.md QA checklist verifies them).
+
 | Field | Purpose | Example |
 |-------|---------|---------|
-| Standards Mapping | Framework controls | ISO 27001 A.8.26, NIS2 Art. 21(2)(e) |
+| Standards Mapping | Framework controls | ISO 27001:2022 A.8.26, NIS2 Art. 21(2)(e) |
 | Evidence Required | Proof of mitigation | Pen test report, WAF config export |
 | Comments | Owner, dates, notes | Owner: AppSec. Review: 2026-Q2 |
 
@@ -71,8 +73,11 @@ Impact:        5 (Catastrophic)
 Risk Rating:   20 (Critical)
 Short-term:    Deploy WAF SQLi rule on API Gateway. Add input validation middleware.
 Long-term:     Migrate to parameterized ORM. Add Semgrep CI rule p/sql-injection.
-MITRE ATT&CK:  T1190, T1059.004, T1005, T1567
-Standards:     ISO 27001 A.8.26, NIS2 Art. 21(2)(e), OWASP ASVS V5.3
+MITRE ATT&CK:  Initial Access: T1190 – Exploit Public-Facing Application;
+               Execution: T1059.004 – Unix Shell;
+               Collection: T1005 – Data from Local System;
+               Exfiltration: T1567 – Exfiltration Over Web Service
+Standards:     ISO 27001:2022 A.8.26, NIS2 Art. 21(2)(e), OWASP ASVS V5.3
 Evidence:      Pen test report, SAST scan results, WAF config export
 Comments:      Owner: AppSec team. Deadline: 2026-Q2.
 ```

@@ -9,17 +9,20 @@ Use this structure for the human-readable summary. Replace all `<placeholders>`.
 
 ## 1. Header
 
-| Field        | Value                          |
-|--------------|--------------------------------|
-| Document ID  | SBOM-YYYYMMDD-001              |
-| Date         | YYYY-MM-DD                     |
-| Repository   | <repo name>                    |
-| Branch       | <branch>                       |
-| Commit       | <short hash> — <message>       |
-| SBOM Format  | CycloneDX JSON | SPDX JSON | … |
-| SBOM Tool    | Syft | cdxgen | manual | …     |
-| Vuln Scanner | Grype | OSV-Scanner | N/A      |
-| SBOM File    | `sbom/<filename>`              |
+| Field          | Value                                          |
+|----------------|------------------------------------------------|
+| Document ID    | SBOM-YYYYMMDD-001                              |
+| Date           | YYYY-MM-DD                                     |
+| Repository     | <repo name>                                    |
+| Branch         | <branch>                                       |
+| Commit         | <short hash> — <message>                       |
+| Author         | <Firstname Lastname (email@domain.com)>        |
+| Classification | CONFIDENTIAL — Internal Security Use Only      |
+| Status         | DRAFT / FINAL                                  |
+| SBOM Format    | CycloneDX JSON / SPDX JSON / …                 |
+| SBOM Tool      | Syft / cdxgen / manual / …                     |
+| Vuln Scanner   | Grype / OSV-Scanner / N/A                      |
+| SBOM File      | `sbom/<filename>`                              |
 
 ---
 
@@ -59,12 +62,13 @@ Use this structure for the human-readable summary. Replace all `<placeholders>`.
 | High     | |
 | Medium   | |
 | Low      | |
+| Info     | |
 
 ### Top Actionable Findings
 
-| # | Package | Version | CVE | Severity | Fix Version | Action |
-|---|---------|---------|-----|----------|-------------|--------|
-| 1 | | | | | | Upgrade / Replace / Accept |
+| # | Package | Version | CVE | Severity | Tag | Fix Version | Action |
+|---|---------|---------|-----|----------|-----|-------------|--------|
+| 1 | | | | | [BLOCK] / [WARN] / [INFO] | | Upgrade / Replace / Accept |
 
 ---
 

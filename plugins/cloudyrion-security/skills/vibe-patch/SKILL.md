@@ -26,27 +26,41 @@ Before starting, read the reference files:
 ### 1a. Find the security-code-review report
 
 ```bash
-REPO_ROOT=$(git rev-parse --show-toplevel)
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 SECURITY_DIR="$REPO_ROOT/security-review"
 REPORT=$(ls -t "$SECURITY_DIR"/security-code-review-report-*.md 2>/dev/null | head -1)
 ```
 
-If no report found → stop with: `❌ No security-code-review report found. Run security-code-review first.`
+If no report found → stop with: `❌ No security-code-review report found. Run /cloudyrion-security:code-review first.`
 
 If multiple reports → list with dates, ask which to use, default to most recent.
 
-**Staleness check** — use Python for cross-platform date math:
+**Staleness check** — anchor the date to its filename position (the canonical name guarantees
+the `-YYYYMMDD` token but not the absence of other digit runs), and use Python for cross-platform
+date math only if it is available:
 
 ```bash
-REPORT_DATE=$(basename "$REPORT" | grep -oE '[0-9]{8}')
-AGE_DAYS=$(python3 -c "
+# Extract the date token from its known position, then take the first match only.
+REPORT_DATE=$(basename "$REPORT" | grep -oE 'report-[0-9]{8}' | grep -oE '[0-9]{8}' | head -1)
+
+if [ -z "$REPORT_DATE" ]; then
+  echo "⚠️  Could not parse a date from the report filename — skipping staleness check."
+  AGE_DAYS=""
+elif command -v python3 >/dev/null 2>&1; then
+  AGE_DAYS=$(python3 -c "
 from datetime import datetime
 d = datetime.strptime('$REPORT_DATE', '%Y%m%d')
 print((datetime.now() - d).days)
 ")
+elif date -j >/dev/null 2>&1; then          # BSD/macOS date
+  AGE_DAYS=$(( ( $(date +%s) - $(date -j -f %Y%m%d "$REPORT_DATE" +%s) ) / 86400 ))
+else                                          # GNU date
+  AGE_DAYS=$(( ( $(date +%s) - $(date -d "$REPORT_DATE" +%s) ) / 86400 ))
+fi
 ```
 
-If >7 days old → warn and offer to stop or proceed. If proceeding, stamp commits with
+If `$AGE_DAYS` is empty, skip the staleness warning with a noted caveat. Otherwise, if
+>7 days old → warn and offer to stop or proceed. If proceeding, stamp commits with
 `⚠️ Based on report aged N days`.
 
 ### 1b. Verify git state
@@ -57,16 +71,26 @@ git rev-parse --abbrev-ref HEAD
 git remote -v
 ```
 
-- **Dirty working tree** → stop. List uncommitted files, ask to commit/stash first.
+- **Dirty working tree** → do not patch over uncommitted work. Follow the single
+  **Git Dirty State Recovery** procedure (see below): show the uncommitted files and prompt to
+  stash. This is the one authoritative dirty-tree policy — Step 1b does not define a separate rule.
 - **No remote** → warn that PR step will be skipped; patches will be local only.
+- **Detached HEAD** → stop. `git symbolic-ref -q HEAD` returns nothing in detached state and
+  `git rev-parse --abbrev-ref HEAD` would yield the literal `HEAD` (an invalid PR `--base`).
+  Ask the user to check out a named base branch first.
 - **Already on a `security/vibe-patch-*` branch** → stop. Must switch to base branch first.
 
 ### 1c. Collect metadata
 
 ```bash
-AUTHOR_NAME=$(git config user.name)
-AUTHOR_EMAIL=$(git config user.email)
+AUTHOR_NAME=$(git config user.name 2>/dev/null || echo "N/A")
+AUTHOR_EMAIL=$(git config user.email 2>/dev/null || echo "N/A")
 BASE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+# In detached-HEAD state `git rev-parse --abbrev-ref HEAD` returns the literal "HEAD", which is
+# not a valid PR base. Step 1b already stops on detached HEAD; guard here as defense in depth.
+if [ "$BASE_BRANCH" = "HEAD" ]; then
+  echo "❌ Detached HEAD — check out a named base branch before patching."; exit 1
+fi
 BASE_COMMIT=$(git log -1 --format="%h")
 DATE=$(date +%Y%m%d)
 PATCH_BRANCH="security/vibe-patch-${DATE}"
@@ -84,11 +108,17 @@ Semgrep rule ID (if any), evidence snippet, recommendation, and remediation stat
 
 ### Severity filter
 
+**How the argument is supplied:** there is no positional flag parser — read the filter from the
+user's natural-language request. If the user's message contains the word `all`, use the ALL
+scope; else if it contains the word `warn`, use the BLOCK+WARN scope; otherwise default to
+BLOCK-only. (`all` takes precedence over `warn` if both appear.) When in doubt, default to the
+safe BLOCK-only scope and tell the user how to widen it.
+
 | Invocation | Scope |
 |---|---|
-| Default (no argument) | `[BLOCK]` only |
-| `warn` | `[BLOCK]` + `[WARN]` |
-| `all` | Everything not already Resolved |
+| Default (no `warn`/`all` in the request) | `[BLOCK]` only |
+| Request includes `warn` | `[BLOCK]` + `[WARN]` |
+| Request includes `all` | Everything not already Resolved |
 
 Skip findings already marked Resolved.
 
@@ -143,11 +173,14 @@ If file no longer exists or line context has shifted significantly → skip, log
 
 ### 4b. Assess confidence BEFORE writing any code
 
+This is the single authoritative confidence table for the whole skill (the "Confidence
+Thresholds" section below just points back here):
+
 | Confidence | Criteria | Action |
 |---|---|---|
-| **HIGH** | Clear safe one-liner: parameterized query, constant-time compare, input sanitization | Patch it |
-| **MEDIUM** | Requires local context understanding but change is bounded | Patch it |
-| **LOW** | Touches business logic, has side effects, or depends on runtime state | **Skip entirely** |
+| **HIGH** | Clear safe change ≤10 lines, touches 1 function, replaces an insecure API with its secure equivalent (parameterized query, constant-time compare, input sanitization). No behavioral change. | Apply automatically |
+| **MEDIUM** | Bounded change ≤30 lines, touches ≤3 functions, adds validation/sanitization. Requires local context understanding and may affect edge-case behavior. | Apply with review note |
+| **LOW** | Change is >30 lines OR requires an architectural change OR affects auth/session logic OR touches business logic, has side effects, or depends on runtime state. | **Skip entirely** — document rationale |
 
 **LOW confidence = skip.** Do not generate speculative patches. Do not add TODO comments.
 A wrong security patch is worse than no patch — it creates false confidence.
@@ -176,17 +209,41 @@ git diff <file>
 
 ### 4d. Verify with Semgrep (if available)
 
-Run **only the specific rule** that flagged the finding, not the full ruleset:
+Guard the tool first: if `command -v semgrep` fails, skip verification, mark the patch
+**unverified**, and note it in the commit and report.
+
+Re-run the **same pack config that code-review used** (do NOT use the `r/<rule-id>` registry
+shorthand — pack/Pro `check_id`s stored by code-review are not all individually resolvable via
+`r/`, so it can return a config-resolution error), then filter the JSON to the patched file and
+the finding's line for the specific `check_id` (Rule ID) from the report:
 
 ```bash
-semgrep scan --config "r/<semgrep-rule-id>" --json <file> 2>/dev/null
+SEMGREP_ERR="$SECURITY_DIR/semgrep-verify-${DATE}.err"
+semgrep scan \
+  --config=p/default \
+  --config=p/owasp-top-ten \
+  --config=p/secrets \
+  --json "<file>" 2> "$SEMGREP_ERR" > "$SECURITY_DIR/semgrep-verify-${DATE}.json"
+SEMGREP_EXIT=$?
 ```
 
-If rule ID is unknown (manual finding), skip verification and note it.
+Then interpret the outcome from the exit code, the JSON `errors` array, and the `results`
+array — never from suppressed stderr (its content determines the branch, so it is logged to
+`$SEMGREP_ERR`, not discarded):
 
-- **Verified clean** → proceed to commit
-- **Still flagged** → attempt one revised patch with different approach
-- **Still flagged after 2nd attempt** → revert file (`git checkout -- <file>`), skip, log reason
+- **Scan failed** — `SEMGREP_EXIT` is nonzero OR the JSON `errors` array is non-empty (config
+  error, network failure, or parse error): the result is **unverified**. Mark the patch
+  unverified, keep it staged, and **do NOT revert** — a scan failure is not evidence the patch
+  is wrong. Note the error from `$SEMGREP_ERR` in the report.
+- **Verified clean** — exit 0, empty `errors`, and no `results` entry matches the patched file
+  and finding line (filter on `check_id` == the report Rule ID, `path` == `<file>`, and
+  `start.line` near the finding location): proceed to commit.
+- **Still flagged** — a matching `results` entry remains for the patched file/line: attempt one
+  revised patch with a different approach.
+- **Still flagged after 2nd attempt** → revert file (`git checkout HEAD -- <file>`, which
+  restores the last committed version regardless of staging state), skip, log reason.
+
+If the rule ID is unknown (manual finding), skip verification and note it as unverified.
 
 ### 4e. Commit
 
@@ -198,7 +255,7 @@ fix(security): Remediate <vuln name> in <filename>
 - CWE-<id>: <description>
 - Semgrep rule: <rule-id | Manual finding>
 - Finding: FINDING-NNN
-- Verification: <Semgrep confirmed clean | Semgrep skipped>
+- Verification: <Semgrep confirmed clean | Semgrep unverified | Semgrep skipped>
 - Applied: <one-line description of the actual change>
 ```
 
@@ -281,13 +338,17 @@ Report:  security-review/security-vibe-patch-report-<date>.md
   ✅ Patched:    N findings
   ⏭️ Skipped:    N findings (manual remediation required)
   🔍 Verified:   N patches (Semgrep confirmed)
+  💾 Stash:      <STASH_REF | "none"> (your pre-patch working changes)
 
 Next steps:
   1. Review the PR diff — you own the correctness
   2. Implement manual fixes for skipped findings (see report §4)
-  3. Re-run security-code-review after merge to confirm clean baseline
+  3. Re-run /cloudyrion-security:code-review after merge to confirm clean baseline
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+If a stash was created during dirty-tree recovery, restore it now (see **Git Dirty State
+Recovery → Always restore the stash**) and report whether the pop succeeded or conflicted.
 
 ---
 
@@ -310,19 +371,35 @@ git checkout <base-branch> -- <file>
 
 ## Confidence Thresholds
 
-| Level | Criteria | Action |
-|-------|----------|--------|
-| **HIGH** | Change is ≤10 lines, touches 1 function, replaces insecure API with secure equivalent. No behavioral change. | Apply automatically |
-| **MEDIUM** | Change is ≤30 lines, touches ≤3 functions, adds validation/sanitization. May affect edge-case behavior. | Apply with review note |
-| **LOW** | Change is >30 lines OR requires architectural change OR affects auth/session logic OR unclear side effects. | SKIP — document rationale |
+The confidence levels (HIGH / MEDIUM / LOW), their criteria, and their actions are defined once
+in the canonical table in **Step 4b — Assess confidence BEFORE writing any code**. Use that
+table as the single source of truth; this section intentionally does not restate the criteria.
 
 ## Git Dirty State Recovery
 
-If working tree has uncommitted changes:
-1. Show `git status` output to user
-2. Ask: "Stash changes before patching? (y/N)"
-3. If yes: `git stash` then proceed
-4. If no: abort with message "Clean your working tree first"
+This is the **single, authoritative** dirty-tree policy referenced by Step 1b. If the working
+tree has uncommitted changes:
+
+1. Show `git status` output to the user.
+2. Ask: "Stash changes before patching? (y/N)".
+3. If **yes**: stash the work, capturing a named ref so it can be reliably restored, then proceed:
+   ```bash
+   git stash push -u -m "vibe-patch auto-stash $(date +%Y%m%d)"
+   STASH_REF=$(git stash list --format='%gd' | head -1)   # e.g. stash@{0}
+   ```
+4. If **no**: abort with message "Clean your working tree first".
+
+**Always restore the stash.** Whenever a stash was created above, run `git stash pop` after the
+patch/PR flow finishes — on success OR on abort — so the user's uncommitted work is never left
+behind on a different branch:
+
+```bash
+if [ -n "$STASH_REF" ]; then
+  git stash pop "$STASH_REF" || echo "⚠️  Stash pop conflicted. Your work is preserved in: $STASH_REF (recover with: git stash pop $STASH_REF)"
+fi
+```
+
+Surface `$STASH_REF` to the user in the final summary so they know where their changes are.
 
 ## Post-PR Guidance
 
@@ -337,7 +414,7 @@ After PR is opened:
 
 1. **Minimal change always wins** — a 3-character fix beats a clean refactor
 2. **LOW confidence = skip, never guess** — document why in report §4
-3. **Semgrep is ground truth** — if the rule still fires, the patch is wrong
+3. **Semgrep is ground truth when it runs** — if the rule still fires on the patched file/line, the patch is wrong; a scan that *fails to run* (config/network/parse error) is "unverified", not "wrong" — never revert on it
 4. **One commit per finding** — atomic, reviewable, revertable, cherry-pickable
 5. **Engineers own the code** — Security proposes, engineering approves
 6. **Every commit is traceable** — Finding ID + CWE + rule ID in every message

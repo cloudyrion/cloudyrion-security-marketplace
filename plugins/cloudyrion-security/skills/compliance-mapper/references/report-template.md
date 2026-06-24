@@ -13,13 +13,13 @@ Replace all `<placeholders>`.
 |----------------|-------------------------------------------|
 | Document ID    | CMP-YYYYMMDD-001                          |
 | Date           | YYYY-MM-DD                                |
-| Author         | <name (email)>                            |
+| Author         | <Firstname Lastname (email@domain.com)>   |
 | Organization   | <company name>                            |
 | Scope          | <system / department / full org>          |
 | Frameworks     | <list: NIS2, DORA, ISO 27001:2022, ...>   |
 | Input Source   | Controls list / Findings / Risk register / Interview |
 | Classification | CONFIDENTIAL — Internal Security Use Only |
-| Status         | DRAFT | FINAL                             |
+| Status         | DRAFT / FINAL                             |
 
 ---
 
@@ -36,13 +36,17 @@ critical gaps count, timeline pressure (regulatory deadlines), key recommendatio
 | DORA | | | | | | % |
 | ISO 27001 | | | | | | % |
 
+> Add one row per in-scope framework (remove or add rows above as needed).
+> **Score** = (Compliant + 0.5 × Partial) / (Compliant + Partial + Non-Compliant), expressed
+> as a percentage and excluding N/A requirements from the denominator.
+
 ---
 
 ## 3. Control Inventory
 
 | ID | Control | Status | Evidence | Frameworks Satisfied |
 |----|---------|--------|----------|---------------------|
-| CTRL-001 | <description> | Implemented / Partial / Missing | <evidence type> | ISO A.8.5, NIS2 Art.21(2)(j) |
+| CTRL-001 | <description> | Compliant / Partial / Non-Compliant / N/A | <evidence type> | ISO A.8.5, NIS2 Art.21(2)(j) |
 
 ---
 
@@ -68,6 +72,10 @@ critical gaps count, timeline pressure (regulatory deadlines), key recommendatio
 
 🟢 Compliant  🟡 Partial  🔴 Non-Compliant  — Not applicable
 
+> The columns above (NIS2 / DORA / ISO 27001 / SOC 2 / GDPR) are examples only — use one
+> column per in-scope framework. Add columns for BSI IT-Grundschutz, NIST CSF 2.0, EU CRA, or
+> OWASP ASVS (and remove unused ones) so the heatmap matches the engagement's frameworks.
+
 ---
 
 ## 5. Gap Analysis
@@ -81,11 +89,12 @@ critical gaps count, timeline pressure (regulatory deadlines), key recommendatio
 | Domain | <Access Control / Crypto / Incident / Supply Chain / ...> |
 | Current State | <what exists today> |
 | Required State | <what the framework demands> |
-| Risk Level | Critical / High / Medium / Low |
+| Risk Level | Critical / High / Medium / Low / Info |
+| Tag | [BLOCK] / [WARN] / [INFO] |
 | Regulatory Deadline | <if applicable> |
 | Remediation | <specific action> |
 | Effort | Low (days) / Medium (weeks) / High (months) |
-| Related Skill | <sbom / iac-scanner / etc. if applicable> |
+| Related Skill | /cloudyrion-security:sbom / /cloudyrion-security:iac-scanner / etc. (if applicable) |
 
 ---
 

@@ -31,7 +31,7 @@ Before generating, read the relevant framework reference(s):
 | Input | Source | What to extract |
 |---|---|---|
 | Security controls list | User-provided or existing policy | Control ID, description, implementation status |
-| Findings from other skills | `code-review`, `iac-scanner`, `api-security`, `threat-model` | Finding ID, CWE, category, remediation status |
+| Findings from other skills | `/cloudyrion-security:code-review`, `/cloudyrion-security:iac-scanner`, `/cloudyrion-security:api-security`, `/cloudyrion-security:threat-model` | Finding ID, CWE, category, remediation status |
 | Risk register | Existing risk register (Excel/Markdown) | Risk ID, controls, status |
 | Verbal description | Interview | "We have MFA, encrypt at rest, run quarterly pentests..." |
 
@@ -109,6 +109,14 @@ For each framework requirement, assess:
 | **P2** | Best practice gap with business impact | Roadmap for next quarter |
 | **P3** | Enhancement opportunity, defense-in-depth | Backlog |
 
+### Finding Tags
+
+Tag each gap so downstream consumers (and the suite) can gate on it. The mapping is:
+
+- **[BLOCK]** — Critical/High risk, must-fix (e.g. non-compliant against a binding regulatory requirement with a near-term deadline)
+- **[WARN]** — Medium risk, should-fix (e.g. partial compliance, or a best-practice gap with business impact)
+- **[INFO]** — Low/Info risk, defense-in-depth (e.g. maturity or enhancement opportunity)
+
 ### Evidence Standards
 
 | Control Type | Acceptable Evidence |
@@ -150,9 +158,12 @@ Rows = framework requirements. Columns = controls that satisfy them.
 If inside a git repo: `<repo-root>/security-review/compliance-matrix-YYYYMMDD.md`
 Otherwise: current working directory.
 
-For complex outputs (many frameworks × many controls), also generate an Excel file using
-the `xlsx` skill for a filterable, sortable matrix. The Markdown matrix is the primary
-deliverable — if the `xlsx` skill is unavailable, skip the Excel export and note it in the report.
+The Markdown matrix is the primary deliverable. For complex outputs (many frameworks ×
+many controls), you may additionally produce a filterable, sortable spreadsheet if an
+xlsx/openpyxl capability is available in the environment. If no such capability is
+available, deliver the matrix as CSV (`compliance-matrix-YYYYMMDD.csv`) instead — it opens
+directly in Excel/Sheets and preserves the sortable/filterable experience. Do not block on
+spreadsheet generation; the Markdown matrix is always produced regardless.
 
 ---
 

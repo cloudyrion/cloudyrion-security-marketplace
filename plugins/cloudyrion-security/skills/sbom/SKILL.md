@@ -30,6 +30,8 @@ REPO_NAME=$(basename "$REPO_ROOT")
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "N/A")
 COMMIT=$(git log -1 --format="%h — %s" 2>/dev/null || echo "N/A")
 DATE=$(date +%Y%m%d)
+AUTHOR_NAME=$(git config user.name 2>/dev/null || echo "N/A")
+AUTHOR_EMAIL=$(git config user.email 2>/dev/null || echo "N/A")
 SBOM_DIR="$REPO_ROOT/sbom"
 mkdir -p "$SBOM_DIR"
 ```
@@ -83,11 +85,15 @@ fi
 
 ### Generate SBOM with Syft
 
-The user may request a specific format. Default to **CycloneDX JSON** (most widely supported
-by downstream tools and EU CRA guidance).
+If the user has not already stated a format, ask them which output format they want
+(CycloneDX JSON / CycloneDX XML / SPDX JSON / SPDX tag-value). If they have no
+preference or do not answer, default to **CycloneDX JSON** (most widely supported by
+downstream tools and EU CRA guidance). Set `USER_PREFERRED_FORMAT` from their answer.
 
 ```bash
-# Ask user preference or default to CycloneDX JSON
+# Default to CycloneDX JSON unless the user explicitly requested another format.
+# If you have already asked the user (see note above) and they chose a format,
+# set USER_PREFERRED_FORMAT accordingly before running this block.
 FORMAT="${USER_PREFERRED_FORMAT:-cyclonedx-json}"
 
 case "$FORMAT" in
@@ -107,30 +113,81 @@ case "$FORMAT" in
     EXT="spdx"
     SYFT_FORMAT="spdx-tag-value"
     ;;
+  *)
+    echo "Unrecognized format '$FORMAT'. Falling back to cyclonedx-json."
+    FORMAT="cyclonedx-json"
+    EXT="cdx.json"
+    SYFT_FORMAT="cyclonedx-json"
+    ;;
 esac
 
+# This is the single output path the rest of the skill (Steps 4-7) consumes.
 SBOM_FILE="$SBOM_DIR/${REPO_NAME}-${DATE}.${EXT}"
 
-syft scan dir:"$REPO_ROOT" -o "$SYFT_FORMAT" > "$SBOM_FILE"
-echo "SBOM generated: $SBOM_FILE"
+# Only run Syft on the primary path. On the fallback path ($SBOM_TOOL = "fallback")
+# the ecosystem-specific tools below must write to this same $SBOM_FILE.
+if [ "$SBOM_TOOL" = "syft" ]; then
+  syft scan dir:"$REPO_ROOT" -o "$SYFT_FORMAT" > "$SBOM_FILE"
+  echo "SBOM generated: $SBOM_FILE"
+else
+  echo "Syft unavailable — use a fallback tool below and write its output to: $SBOM_FILE"
+fi
 ```
 
 ### Fallback: Ecosystem-specific tools
 
-If Syft is unavailable, use native tools:
+If Syft is unavailable, use native tools. **Write every fallback command's output to the
+same `$SBOM_FILE`** defined above (not a hardcoded `sbom.cdx.json`), so Steps 4–7 operate
+on the actual generated file. Guard each tool with `command -v` before running it and
+fall through to the next option if it is missing.
 
-| Ecosystem | Tool | Install | Command |
+| Ecosystem | Tool | Install | Command (writes to `$SBOM_FILE`) |
 |---|---|---|---|
-| Python | `cyclonedx-py` | `pip install cyclonedx-bom` | `cyclonedx-py requirements -i requirements.txt -o sbom.cdx.json --format json` |
-| Node.js | `cdxgen` | `npm install -g @cyclonedx/cdxgen` | `cdxgen -o sbom.cdx.json` |
-| Go | `cyclonedx-gomod` | `go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest` | `cyclonedx-gomod mod -json -output sbom.cdx.json` |
-| Rust | `cargo-cyclonedx` | `cargo install cargo-cyclonedx` | `cargo cyclonedx --format json` |
-| Java | `cdxgen` | `npm install -g @cyclonedx/cdxgen` | `cdxgen -o sbom.cdx.json` |
-| Container | `syft` (strongly preferred) or `trivy` | — | `trivy image --format cyclonedx -o sbom.cdx.json <image>` |
+| Python | `cyclonedx-py` | `pip install cyclonedx-bom` | `cyclonedx-py requirements requirements.txt -o "$SBOM_FILE" --of json` |
+| Node.js | `cdxgen` | `npm install -g @cyclonedx/cdxgen` | `cdxgen -o "$SBOM_FILE"` |
+| Go | `cyclonedx-gomod` | `go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest` | `cyclonedx-gomod mod -json -output "$SBOM_FILE"` |
+| Rust | `cargo-cyclonedx` | `cargo install cargo-cyclonedx` | `cargo cyclonedx --format json && mv "$REPO_ROOT"/*.cdx.json "$SBOM_FILE"` |
+| Java | `cdxgen` | `npm install -g @cyclonedx/cdxgen` | `cdxgen -o "$SBOM_FILE"` |
+| Any source tree | `trivy` | — | `trivy fs --format cyclonedx --output "$SBOM_FILE" "$REPO_ROOT"` |
+| Container image | `syft` (strongly preferred) or `trivy` | — | `trivy image --format cyclonedx --output "$SBOM_FILE" <image>` |
+
+For ecosystems with no dedicated row (e.g. Ruby, PHP, .NET), use the generic
+`trivy fs` source-tree fallback above before resorting to a manual SBOM.
 
 If no tool is available at all, perform a **manual SBOM** by parsing manifest/lock files
-and generating a CycloneDX JSON document programmatically. This is a last resort — note
-the limitation in the report.
+and generating a CycloneDX JSON document programmatically (see the minimal skeleton below).
+This is a last resort — note the limitation in the report.
+
+#### Minimal CycloneDX 1.5 JSON skeleton (manual last resort)
+
+A hand-built SBOM must still satisfy the NTIA fields validated in Step 5. Populate at
+minimum `metadata.timestamp`, `metadata.authors`, each `components[].{name,version,purl}`,
+and the `dependencies[]` graph. Write the result to `$SBOM_FILE`:
+
+```json
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "<ISO-8601 generation time>",
+    "authors": [{ "name": "<SBOM author>" }],
+    "component": { "type": "application", "name": "<repo name>", "version": "<version>" }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "<dependency name>",
+      "version": "<pinned version>",
+      "purl": "pkg:<ecosystem>/<name>@<version>",
+      "bom-ref": "<name>@<version>"
+    }
+  ],
+  "dependencies": [
+    { "ref": "<name>@<version>", "dependsOn": [] }
+  ]
+}
+```
 
 ---
 
@@ -145,7 +202,9 @@ if command -v grype &>/dev/null; then
   echo "Vulnerability scan: $VULN_FILE"
 elif command -v osv-scanner &>/dev/null; then
   VULN_FILE="$SBOM_DIR/vulnerabilities-${DATE}.json"
-  osv-scanner --sbom="$SBOM_FILE" --format json > "$VULN_FILE"
+  # The deprecated `--sbom` flag is removed in osv-scanner v3; pass the SBOM via -L
+  # (the *.cdx.json / *.spdx.json filename lets osv-scanner detect the SBOM format).
+  osv-scanner scan source -L "$SBOM_FILE" --format json > "$VULN_FILE"
   echo "Vulnerability scan (OSV): $VULN_FILE"
 else
   echo "No vuln scanner available (grype or osv-scanner). Skipping enrichment."
@@ -157,9 +216,14 @@ fi
 If a vulnerability scanner ran, extract for each finding:
 - Package name + version
 - CVE ID
-- Severity (CVSS score + qualitative)
+- Severity (CVSS score + qualitative, on the ladder Critical / High / Medium / Low / Info)
 - Fix version (if available)
 - Whether the vulnerable code path is reachable (if data available)
+
+**Finding tags** — assign each actionable finding a tag in the report, mapped once here:
+- `[BLOCK]` = Critical / High — must-fix before release
+- `[WARN]` = Medium — should-fix
+- `[INFO]` = Low / Info — defense-in-depth / informational
 
 ---
 
@@ -173,7 +237,7 @@ for the full checklist, then validate the generated SBOM against it:
 | Supplier name | `component.supplier.name` or `component.author` | Present for each component? |
 | Component name | `component.name` | ✓ Always present |
 | Component version | `component.version` | Present and pinned (not range)? |
-| Unique identifier | `component.bom-ref` or `component.purl` | PURL present? |
+| Unique identifier | `component.purl` (or `component.cpe`) | PURL present? |
 | Dependency relationship | `dependencies[]` | Dependency tree present? |
 | Author of SBOM | `metadata.authors` | Present? |
 | Timestamp | `metadata.timestamp` | Present? |
@@ -189,7 +253,7 @@ Read the report template: `references/report-template.md`
 Write the report to: `$SBOM_DIR/sbom-report-${DATE}.md`
 
 The report must include:
-1. Header metadata (repo, branch, commit, date, tool used, format)
+1. Header metadata (repo, branch, commit, date, author, classification, status, tool used, format)
 2. Component statistics (total count, by ecosystem, by license family)
 3. Vulnerability summary (critical/high/medium/low counts, top 5 actionable findings)
 4. NTIA compliance checklist results
@@ -233,7 +297,7 @@ Print a quick summary in the terminal:
 ## EU Cyber Resilience Act (CRA) Compliance
 
 If regulatory context includes EU CRA:
-1. Verify SBOM includes ALL transitive dependencies (not just direct)
+1. Verify SBOM covers at least top-level dependencies (the CRA legal minimum, Annex I, Part II, §1); including all transitive dependencies is strongly recommended
 2. Check vulnerability disclosure contact is documented in SBOM metadata
 3. Verify security update mechanism is described
 4. Ensure SBOM format is machine-readable (CycloneDX JSON preferred for CRA)

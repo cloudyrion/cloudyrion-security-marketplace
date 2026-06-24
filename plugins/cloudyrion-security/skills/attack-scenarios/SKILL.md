@@ -72,6 +72,11 @@ Rules of Engagement:
 
 Enumerate all entry points and exposure. Build an attack surface map.
 
+> **Note:** The tool commands listed throughout this skill (e.g. `nmap`, `sqlmap`, `gobuster`,
+> `trivy`, `ScoutSuite`) are **reference/design-time** examples for the playbook deliverable —
+> this skill does not auto-run them. To execute a scenario manually, the named tool must be
+> installed (check with `command -v <tool>`); install it first if it is absent.
+
 ### Entry Point Inventory
 
 For each entry point discovered:
@@ -249,6 +254,25 @@ For each scenario, show the **kill chain progression**:
 | **Likelihood: Medium** | Low | Medium | High |
 | **Likelihood: Low** | Info | Low | Medium |
 
+Severity ladder: **Critical / High / Medium / Low / Info**.
+
+### Finding Tags
+
+Tag every scenario for triage:
+
+- **[BLOCK]** — Critical/High, must-fix (attack path is realistic and high-impact)
+- **[WARN]** — Medium, should-fix (attack requires conditions or has partial defenses)
+- **[INFO]** — Low/Info, defense-in-depth (low-likelihood or information-disclosure only)
+
+### Scenario Status
+
+Because this skill produces a **design-time** playbook (no live exploitation is performed),
+assign each scenario a Status in the catalog and Risk Summary Matrix:
+
+- **Exploitable** — analysis indicates the attack would likely succeed against observed defenses
+- **Blocked** — an observed control is expected to stop the attack
+- **Untested** — requires a live engagement to confirm (default for a planning deliverable)
+
 ---
 
 ## Step 5 — Map to Frameworks
@@ -307,12 +331,20 @@ Group by priority:
 
 Read `references/report-template.md` and write the full report.
 
-**Output location:** `<repo-root>/security-review/pentest-attack-scenarios-YYYYMMDD.md`
+**Output location:** `<repo-root>/security-review/pentest-attack-scenarios-YYYYMMDD.md` (Document ID `PEN-YYYYMMDD-001`)
 
 ```bash
-REPORT_DIR="${REPO_ROOT:-.}/security-review"
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+DATE=$(date +%Y%m%d)
+REPORT_DIR="$REPO_ROOT/security-review"
 mkdir -p "$REPORT_DIR"
+AUTHOR_NAME=$(git config user.name 2>/dev/null || echo "N/A")
+AUTHOR_EMAIL=$(git config user.email 2>/dev/null || echo "N/A")
+REPO_NAME=$(basename "$REPO_ROOT")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "N/A")
+COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
 REPORT="$REPORT_DIR/pentest-attack-scenarios-${DATE}.md"
+echo "Report written to: $REPORT"
 ```
 
 ---

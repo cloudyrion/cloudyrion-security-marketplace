@@ -13,17 +13,17 @@ Use this structure for every patch report. Replace all `<placeholders>`.
 |------------------|----------------------------------------------------------|
 | Document ID      | SVP-YYYYMMDD-001                                         |
 | Date             | YYYY-MM-DD                                               |
-| Author           | Firstname Lastname (email@domain.com)                    |
+| Author           | <Firstname Lastname (email@domain.com)>                  |
 | Repository       | <repo name>                                              |
 | Patch Branch     | security/vibe-patch-<date>                               |
 | Base Branch      | <base branch>                                            |
 | Commit Range     | <base tip>..<patch tip> (N commits)                      |
 | Source Report    | `security-code-review-report-<date>.md`                  |
 | Source Commit    | <commit hash the code review was run against>            |
-| Filter Applied   | BLOCK only | BLOCK+WARN | ALL                            |
+| Filter Applied   | BLOCK only / BLOCK+WARN / ALL                            |
 | Classification   | CONFIDENTIAL — Internal Security Use Only                |
-| Status           | DRAFT                                                    |
-| Semgrep Engine   | Pro | OSS | Not available                                |
+| Status           | DRAFT / FINAL                                            |
+| Semgrep Engine   | Pro / OSS / Not available                                |
 
 ---
 
@@ -64,13 +64,13 @@ reduction, what remains open and why, one-line merge recommendation.>
 | Field          | Value                                         |
 |----------------|-----------------------------------------------|
 | Finding ID     | FINDING-NNN                                   |
-| Severity       | [BLOCK] | [WARN]                              |
+| Severity       | [BLOCK] / [WARN]                               |
 | CWE            | CWE-<id> — <name>                             |
 | Location       | `<file>:<line>`                               |
-| Confidence     | HIGH | MEDIUM                                  |
-| Semgrep Rule   | `<rule-id>` | Manual finding                   |
+| Confidence     | HIGH / MEDIUM                                  |
+| Semgrep Rule   | `<rule-id>` / Manual finding                   |
 | Commit         | `<short hash>` — <subject>                    |
-| Verification   | Semgrep verified clean | Semgrep unverified   |
+| Verification   | Semgrep verified clean / Semgrep unverified   |
 
 #### What Was Changed
 <One precise paragraph: what lines were modified and what the change does. Describe the fix,
@@ -102,10 +102,10 @@ were generated.
 | Field       | Value                                                    |
 |-------------|----------------------------------------------------------|
 | Finding ID  | FINDING-NNN                                              |
-| Severity    | [BLOCK] | [WARN]                                         |
+| Severity    | [BLOCK] / [WARN]                                          |
 | CWE         | CWE-<id> — <name>                                        |
 | Location    | `<file>:<line>`                                          |
-| Skip Reason | Low confidence | Hook blocked | Verification failed | Context changed |
+| Skip Reason | Low confidence / Hook blocked / Verification failed / Context changed |
 
 #### Why It Was Skipped
 <Specific technical reason — name the exact concern, not "complex code".>
@@ -148,7 +148,7 @@ semgrep scan --config=p/default <list patched files>
 | Framework | Control                          | Before    | After     |
 |-----------|----------------------------------|-----------|-----------|
 | SOC 2     | CC6.1 — Logical Access Controls  |           |           |
-| ISO 27001 | A.14.2.1 — Secure Dev Policy     |           |           |
+| ISO 27001:2022 | A.8.28 — Secure coding      |           |           |
 | GDPR      | Art. 32 — Security of Processing |           |           |
 | NIS2      | Art. 21 — Risk Management        |           |           |
 

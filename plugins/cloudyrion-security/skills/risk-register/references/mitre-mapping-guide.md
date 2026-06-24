@@ -2,9 +2,11 @@
 
 ## Rules
 1. Map 3-6 techniques per risk — cover multiple tactics
-2. Include technique ID + name
+2. Use the canonical cell format `Tactic: Technique ID – Technique Name`, separating multiple techniques with `;` (e.g., `Initial Access: T1190 – Exploit Public-Facing Application; Execution: T1059 – Command and Scripting Interpreter`)
 3. Prefer specific sub-techniques (T1078.004) over parent (T1078) when applicable
 4. Map to techniques the risk's mitigations defend against
+
+The domain tables below list `Technique ID Name` pairs for quick reference; when writing the cell, prepend the technique's tactic per the canonical format in rule 2.
 
 ## Common Mappings by Domain
 

@@ -13,14 +13,14 @@ Replace all `<placeholders>`.
 |----------------|-----------------------------------------------|
 | Document ID    | SAR-YYYYMMDD-001                              |
 | Date           | YYYY-MM-DD                                    |
-| Author         | <name (email)>                                |
+| Author         | <Firstname Lastname (email@domain.com)>       |
 | System         | <system name>                                 |
 | Version        | <version / release / iteration>               |
 | Sector         | Telco / Banking / Automotive / IoT / SaaS / General |
 | Scope          | Full system / <specific component>            |
 | Input          | HLD / LLD / Diagrams / Code / Interview       |
 | Classification | CONFIDENTIAL — Internal Security Use Only     |
-| Status         | DRAFT | FINAL                                 |
+| Status         | DRAFT / FINAL                                 |
 
 ---
 
@@ -51,7 +51,9 @@ maturity assessment, top 3 recommended actions.>
 | Logging & Monitoring | | |
 | Resilience | | |
 | Supply Chain | | |
+| API Architecture | | |
 | Container/Cloud | | |
+| Cryptography | | |
 
 ---
 
@@ -93,9 +95,9 @@ maturity assessment, top 3 recommended actions.>
 | Field       | Value                                    |
 |-------------|------------------------------------------|
 | ID          | FINDING-001                              |
-| Severity    | Critical / High / Medium / Low           |
+| Severity    | Critical / High / Medium / Low / Info    |
 | Tag         | [BLOCK] / [WARN] / [INFO]               |
-| Domain      | Network / IAM / Data / Secrets / Logging / Resilience / Container / Sector |
+| Domain      | Network / IAM / Data / Secrets / Logging / Resilience / Supply Chain / API / Container / Cryptography / Sector |
 | Check Ref   | <checklist ID: NET-01, IAM-05, etc.>     |
 | Component   | <affected component ID(s)>               |
 | Framework   | ISO 27001 A.x.y / NIS2 Art. X / etc.    |

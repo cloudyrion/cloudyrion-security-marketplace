@@ -6,7 +6,11 @@ High-value manual checks that automated scanners frequently miss, organized by I
 
 ## Terraform
 
-| # | Check | Severity | CIS Ref |
+> CIS refs below are approximate cross-references to the CIS AWS Foundations Benchmark.
+> Section numbering varies between benchmark versions — confirm the exact recommendation ID
+> against the version pinned in SKILL.md (CIS AWS Foundations v3.0) before citing in a report.
+
+| # | Check | Severity | CIS AWS (approx.) |
 |---|-------|----------|---------|
 | TF-01 | S3 bucket public access block not enabled | High | CIS AWS 2.1.5 |
 | TF-02 | RDS instance publicly accessible | Critical | CIS AWS 2.3.1 |
@@ -80,3 +84,29 @@ High-value manual checks that automated scanners frequently miss, organized by I
 | AN-04 | `no_log: true` missing on tasks handling secrets | High | — |
 | AN-05 | Package installation without version pinning | Medium | — |
 | AN-06 | `ansible_ssh_pass` in inventory (use SSH keys) | Critical | — |
+
+## Helm
+
+| # | Check | Severity | Ref |
+|---|-------|----------|-----|
+| HL-01 | Container running as root / `runAsNonRoot` not set in values | High | CIS K8s 5.2.6 |
+| HL-02 | `privileged: true` or added capabilities in templated pods | Critical | CIS K8s 5.2.1 |
+| HL-03 | Missing resource limits/requests in `values.yaml` | Medium | CIS K8s 5.4.1 |
+| HL-04 | Secrets templated as plaintext values instead of referencing a Secret | Critical | — |
+| HL-05 | Image tag defaults to `latest` instead of a pinned tag/digest | Medium | — |
+| HL-06 | NetworkPolicy not rendered for workloads | High | CIS K8s 5.3.2 |
+| HL-07 | `serviceAccount.create: true` with broad RBAC in chart | High | CIS K8s 5.1.1 |
+| HL-08 | Dependency charts pulled from unpinned/unverified repositories | Medium | — |
+
+## ARM / Bicep
+
+| # | Check | Severity | Ref |
+|---|-------|----------|-----|
+| AZ-01 | Storage account allows public blob access | High | CIS Azure 3.x |
+| AZ-02 | Storage account `supportsHttpsTrafficOnly` disabled | High | CIS Azure 3.x |
+| AZ-03 | NSG rule allows `*`/`Internet` inbound on sensitive ports | High | CIS Azure 6.x |
+| AZ-04 | SQL/Cosmos DB without `enableEncryption` / TDE | Medium | CIS Azure 4.x |
+| AZ-05 | Key Vault soft-delete or purge protection disabled | Medium | CIS Azure 8.x |
+| AZ-06 | Diagnostic/activity logging not enabled on resources | Medium | CIS Azure 5.x |
+| AZ-07 | Managed identity not used (secrets/keys hardcoded in parameters) | Critical | — |
+| AZ-08 | Public IP attached to VM without justification | Medium | — |

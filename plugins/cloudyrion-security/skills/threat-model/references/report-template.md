@@ -4,7 +4,7 @@ Replace all `<placeholders>`.
 
 ---
 
-```markdown
+````markdown
 # Threat Model Report
 
 ## 1. Header Metadata
@@ -13,14 +13,14 @@ Replace all `<placeholders>`.
 |-----------------|-------------------------------------------|
 | Document ID     | TM-YYYYMMDD-001                           |
 | Date            | YYYY-MM-DD                                |
-| Author          | <name (email)>                            |
+| Author          | <Firstname Lastname (email@domain.com)>   |
 | System          | <system name>                             |
 | Version         | <version/release>                         |
-| Methodology     | STRIDE | PASTA | Both                     |
-| Scope           | Full system | <specific component>        |
+| Methodology     | STRIDE / PASTA / Both                     |
+| Scope           | Full system / <specific component>        |
 | Classification  | CONFIDENTIAL — Internal Security Use Only |
-| Status          | DRAFT | FINAL                              |
-| Review Cadence  | Quarterly | On architecture change        |
+| Status          | DRAFT / FINAL                             |
+| Review Cadence  | Quarterly / On architecture change        |
 
 ---
 
@@ -83,6 +83,10 @@ top 3 recommended actions, overall risk posture assessment.>
 
 ## 5. Threat Catalog
 
+<!-- This catalog captures both STRIDE and PASTA threat analysis. For PASTA (or "Both"),
+     record per-threat results here; attack-tree generation for top threats is delegated to
+     /cloudyrion-security:attack-scenarios. -->
+
 <!-- Repeat for each threat -->
 
 ### T-001 — <Short Title>
@@ -93,7 +97,8 @@ top 3 recommended actions, overall risk posture assessment.>
 | STRIDE | Spoofing / Tampering / Repudiation / Info Disclosure / DoS / EoP |
 | Affected Element | <DFD ID(s)> |
 | MITRE ATT&CK | <technique ID — name> |
-| Risk Level | Critical / High / Medium / Low |
+| Risk Level | Critical / High / Medium / Low / Info |
+| Tag | [BLOCK] / [WARN] / [INFO] |
 | Likelihood | High / Medium / Low |
 | Impact | High / Medium / Low |
 | Existing Controls | <what's already in place, or "None"> |
@@ -153,7 +158,7 @@ top 3 recommended actions, overall risk posture assessment.>
 
 | Framework | Control | Threat(s) Addressed | Status |
 |-----------|---------|---------------------|--------|
-| ISO 27001 | A.14.2.1 | | |
+| ISO 27001:2022 | A.8.25 | | |
 | NIS2 | Art. 21(2)(a) | | |
 | DORA | Art. 7 | | |
 
@@ -194,4 +199,4 @@ not be assessed without runtime testing.>
 | | Engineering Lead | Action — implement mitigations |
 | | Security Team | FYI — threat archive |
 | | Product Owner | FYI — risk acceptance decisions |
-```
+````
