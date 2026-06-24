@@ -118,6 +118,7 @@ fi
 
 # Kubernetes — kubesec (per manifest)
 if command -v kubesec &>/dev/null; then
+  : > "$REPORT_DIR/kubesec-${DATE}.json"   # truncate so same-day re-runs are idempotent
   find "$REPO_ROOT" -maxdepth 4 \( -name '*.yaml' -o -name '*.yml' \) \
        -not -path "*/.terraform/*" -not -path "*/node_modules/*" -print0 2>/dev/null \
     | while IFS= read -r -d '' MANIFEST; do
@@ -141,6 +142,7 @@ fi
 
 # Dockerfile — hadolint (scan every detected Dockerfile, not only repo-root)
 if command -v hadolint &>/dev/null; then
+  : > "$REPORT_DIR/hadolint-${DATE}.json"   # truncate so same-day re-runs are idempotent
   find "$REPO_ROOT" -maxdepth 4 -name 'Dockerfile*' \
        -not -path "*/.terraform/*" -not -path "*/node_modules/*" -print0 2>/dev/null \
     | while IFS= read -r -d '' DOCKERFILE; do

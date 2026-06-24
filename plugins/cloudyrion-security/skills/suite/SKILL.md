@@ -292,7 +292,7 @@ and the overall risk level: Critical / High / Medium / Low>
 | Threat Model | `security-review/threat-model-YYYYMMDD.md` | TM-YYYYMMDD-001 |
 | Attack Scenarios Playbook | `security-review/pentest-attack-scenarios-YYYYMMDD.md` | PEN-YYYYMMDD-001 |
 | Compliance Matrix | `security-review/compliance-matrix-YYYYMMDD.md` | CMP-YYYYMMDD-001 |
-| Risk Register | `security-review/<name>.xlsx` | — |
+| Risk Register | `security-review/security-risk-register-YYYYMMDD.xlsx` | — |
 | Vibe Patch Report | `security-review/security-vibe-patch-report-YYYYMMDD.md` | SVP-YYYYMMDD-001 |
 | **Dashboard** | `security-review/security-suite-dashboard-YYYYMMDD.md` | SSD-YYYYMMDD-001 |
 
