@@ -8,7 +8,7 @@
       "name": "cloudyrion-security",
       "source": "./plugins/cloudyrion-security",
       "description": "Comprehensive security assessment suite — code review, threat modeling, compliance, SBOM, and more.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "security",
       "tags": ["security", "devsecops", "compliance", "owasp", "sast"]
     }
