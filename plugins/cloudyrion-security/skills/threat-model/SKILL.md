@@ -152,8 +152,8 @@ Run the 7 PASTA stages:
 2. Define technical scope → DFD from Step 2
 3. Application decomposition → component inventory
 4. Threat analysis → threat intelligence for this tech stack
-5. Vulnerability analysis → known weaknesses (link to security-code-review if available)
-6. Attack modeling → attack trees for top threats
+5. Vulnerability analysis → known weaknesses (link to /cloudyrion-security:code-review if available)
+6. Attack modeling → attack trees for top threats (delegate attack-tree generation to /cloudyrion-security:attack-scenarios)
 7. Risk & impact analysis → Step 4 below
 
 ---
@@ -180,6 +180,14 @@ Use a consistent Likelihood × Impact matrix:
 
 **Impact factors:** data classification affected, blast radius, regulatory consequences,
 business disruption, reputational damage.
+
+### Finding tags
+
+Tag each threat so downstream skills and the report agree on urgency:
+
+- `[BLOCK]` — Critical/High risk, must-fix.
+- `[WARN]` — Medium risk, should-fix.
+- `[INFO]` — Low/Info risk, defense-in-depth.
 
 ---
 
@@ -209,9 +217,17 @@ Read `references/report-template.md` and write the report.
 Otherwise, write to the current working directory.
 
 ```bash
-REPORT_DIR="${REPO_ROOT:-.}/security-review"
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+DATE=$(date +%Y%m%d)
+REPORT_DIR="$REPO_ROOT/security-review"
 mkdir -p "$REPORT_DIR"
+AUTHOR_NAME=$(git config user.name 2>/dev/null || echo "N/A")
+AUTHOR_EMAIL=$(git config user.email 2>/dev/null || echo "N/A")
+REPO_NAME=$(basename "$REPO_ROOT")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "N/A")
+COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
 REPORT="$REPORT_DIR/threat-model-${DATE}.md"
+echo "Report written to: $REPORT"
 ```
 
 ---

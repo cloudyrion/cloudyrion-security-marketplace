@@ -1,6 +1,6 @@
 # CLOUDYRION Security
 
-Comprehensive security assessment suite for Claude Code. 13 skills covering code review, threat modeling, API security, compliance mapping, SBOM generation, and more.
+Comprehensive security assessment suite for Claude Code. 12 skills covering code review, threat modeling, API security, compliance mapping, SBOM generation, and more.
 
 ## Installation
 
@@ -47,13 +47,13 @@ The plugin ships with three hooks (active by default). Remove entries from `hook
 
 | Hook | Trigger | Action |
 |------|---------|--------|
-| Secret Detection | After Write/Edit | Warns if hardcoded secrets detected |
-| Dependency Alert | After Write/Edit on package files | Suggests running SBOM check |
-| PR Reminder | After `gh pr create` | Reminds to run quick-scan |
+| Secret Detection | After Write/Edit | Surfaces detected hardcoded secrets to Claude via JSON `additionalContext` |
+| Dependency Alert | After Write/Edit on package files | Surfaces a note to Claude via JSON `additionalContext` to run an SBOM check |
+| PR Reminder | Before opening a PR (`gh pr create`) | Reminds to run quick-scan first |
 
 ## Frameworks Covered
 
-OWASP (Top 10, API Top 10, ASVS), CWE/CVE/CVSS, MITRE ATT&CK, STRIDE/PASTA, NIST 800-53, NIST CSF 2.0, ISO 27001:2022, NIS2, DORA, GDPR, EU CRA, SOC 2, PCI-DSS, CIS Benchmarks.
+OWASP (Top 10 2021, API Top 10 2023, ASVS, WSTG), CWE/CVE/CVSS, MITRE ATT&CK, CAPEC, STRIDE/PASTA, NIST 800-53, NIST CSF 2.0, ISO 27001:2022, NIS2, DORA, GDPR, EU CRA, SOC 2, PCI-DSS, BSI IT-Grundschutz, CIS Benchmarks, IEC 62443, ETSI EN 303 645.
 
 ## License
 

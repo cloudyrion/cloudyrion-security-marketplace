@@ -1,30 +1,32 @@
 {
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "FILE=$(jq -r '.tool_input.file_path // empty') && [ -n \"$FILE\" ] && [ -f \"$FILE\" ] && grep -nEi '(api[_-]?key|api[_-]?secret|password|passwd|secret[_-]?key|access[_-]?token|private[_-]?key|auth[_-]?token)\\s*[=:]\\s*[\"'\"'\"'][^\"'\"'\"']+' \"$FILE\" | head -5 | while read -r line; do echo \"WARNING: Possible hardcoded secret: $line\"; done || true"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "FILE=$(jq -r '.tool_input.file_path // empty') && [ -n \"$FILE\" ] && case \"$(basename \"$FILE\")\" in package.json|requirements.txt|pyproject.toml|go.mod|Cargo.toml|Gemfile) echo 'Dependency file changed. Consider running /cloudyrion-security:sbom to check for vulnerabilities.' ;; esac || true"
-          }
-        ]
-      },
+    "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.command // empty' | grep -q 'gh pr create' && echo 'Opening a PR — consider running /cloudyrion-security:quick-scan first to catch security issues.' || true"
+            "command": "command -v jq >/dev/null || { echo 'cloudyrion-security hooks need jq' >&2; exit 0; }; CMD=$(jq -r '.tool_input.command // empty'); [ -n \"$CMD\" ] || exit 0; printf '%s' \"$CMD\" | grep -Eq 'gh +pr +create' || exit 0; jq -n '{hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"ask\",permissionDecisionReason:\"About to open a pull request. Consider running /cloudyrion-security:quick-scan first to catch security issues before the PR is created.\",additionalContext:\"A gh pr create command is about to run. Recommend running /cloudyrion-security:quick-scan first to catch hardcoded secrets, OWASP Top 10 issues, and vulnerable dependencies before the PR is opened.\"}}'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null || { echo 'cloudyrion-security hooks need jq' >&2; exit 0; }; FILE=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty'); [ -n \"$FILE\" ] && [ -f \"$FILE\" ] || exit 0; MATCHES=$(grep -nEi '(api[_-]?key|api[_-]?secret|password|passwd|secret[_-]?access[_-]?key|secret[_-]?key|access[_-]?token|private[_-]?key|auth[_-]?token)[[:space:]]*[=:][[:space:]]*[\"'\\'']?[^[:space:]\"'\\'']{6,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36,}|sk_(live|test)_[A-Za-z0-9]+|xox[baprs]-|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|eyJ[A-Za-z0-9_-]+\\.eyJ[A-Za-z0-9_-]+' \"$FILE\" | head -5); [ -n \"$MATCHES\" ] || exit 0; MSG=$(printf 'SECURITY WARNING: possible hardcoded secret(s) detected in %s:\\n%s\\nReview and remove before committing, or run /cloudyrion-security:quick-scan.' \"$FILE\" \"$MATCHES\"); jq -n --arg ctx \"$MSG\" '{hookSpecificOutput:{hookEventName:\"PostToolUse\",additionalContext:$ctx}}'"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null || { echo 'cloudyrion-security hooks need jq' >&2; exit 0; }; FILE=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty'); [ -n \"$FILE\" ] || exit 0; case \"$(basename \"$FILE\")\" in package.json|package-lock.json|requirements.txt|pyproject.toml|go.mod|go.sum|Cargo.toml|Cargo.lock|Gemfile|Gemfile.lock|pom.xml|build.gradle) jq -n --arg f \"$(basename \"$FILE\")\" '{hookSpecificOutput:{hookEventName:\"PostToolUse\",additionalContext:(\"Dependency manifest \\($f) changed. Consider running /cloudyrion-security:sbom to regenerate the SBOM and check for known vulnerabilities.\")}}' ;; esac"
           }
         ]
       }

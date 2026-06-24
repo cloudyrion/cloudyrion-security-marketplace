@@ -10,7 +10,7 @@
 | SSTI | T1059 | WSTG-INPV-18, A03 | `tplmap -u URL`, `{{7*7}}` probe | Template engine processes input | RCE or data leak |
 | Path Traversal | T1005 | WSTG-ATHZ-01, A01 | `curl "URL/../../etc/passwd"`, `dotdotpwn` | File path from user input | Arbitrary file read |
 | Open Redirect | T1566.002 | WSTG-CLNT-04, A01 | `curl -v "URL?redirect=https://evil.com"` | Redirect URL from user input | Victim redirected to attacker site |
-| CSRF | T1185 | WSTG-SESS-05, A01 | Craft HTML form, `burp CSRF PoC generator` | No CSRF token or SameSite | State-changing action without consent |
+| CSRF | N/A (no direct ATT&CK technique) | WSTG-SESS-05, A01 | Craft HTML form, `burp CSRF PoC generator` | No CSRF token or SameSite | State-changing action without consent |
 | Command Injection | T1059 | WSTG-INPV-12, A03 | `commix -u URL`, `curl "URL;id"` | Input reaches shell command | Command output or reverse shell |
 | Insecure Deserialization | T1059 | WSTG-INPV-16, A08 | `ysoserial`, `pickle exploit` | App deserializes user data | RCE |
 | File Upload Bypass | T1505.003 | WSTG-BUSL-08, A04 | `burp` content-type manipulation | File upload with type check | Webshell uploaded and executed |
@@ -27,13 +27,13 @@
 
 | Technique | MITRE ATT&CK | OWASP API | Tools | Prerequisites | Success Criteria |
 |-----------|-------------|-----------|-------|---------------|-----------------|
-| BOLA (IDOR) | T1078 | API1 | `burp` — change ID in request | Predictable object IDs | Access other users' data |
-| Broken Auth | T1078, T1110 | API2 | `hydra`, `jwt_tool`, `burp intruder` | Login endpoint exposed | Valid credentials or token |
-| Excessive Data | T1005 | API3 | `curl` + `jq` response analysis | API returns full objects | Internal fields leaked |
-| Mass Assignment | T1565 | API6 | `curl -X PUT -d '{"is_admin":true}'` | Object properties accepted blindly | Privilege escalation |
-| SSRF | T1090 | API7 | `curl "URL?fetch=http://169.254.169.254"` | Server fetches user-supplied URL | Internal service access |
-| Rate Limit Bypass | T1110 | API4 | `ffuf`, `turbo intruder` | No or weak rate limiting | Brute force succeeds |
-| GraphQL Introspection | T1592 | API3 | `graphql-cop`, `clairvoyance` | Introspection enabled in prod | Full schema exposed |
+| BOLA (IDOR) | T1078 | API1:2023 | `burp` — change ID in request | Predictable object IDs | Access other users' data |
+| Broken Auth | T1078, T1110 | API2:2023 | `hydra`, `jwt_tool`, `burp intruder` | Login endpoint exposed | Valid credentials or token |
+| Broken Object Property Level Authorization (data exposure) | T1005 | API3:2023 | `curl` + `jq` response analysis | API returns full objects | Internal fields leaked |
+| Mass Assignment | T1565 | API3:2023 | `curl -X PUT -d '{"is_admin":true}'` | Object properties accepted blindly | Privilege escalation |
+| SSRF | T1090 | API7:2023 | `curl "URL?fetch=http://169.254.169.254"` | Server fetches user-supplied URL | Internal service access |
+| Rate Limit Bypass | T1110 | API4:2023 | `ffuf`, `turbo intruder` | No or weak rate limiting | Brute force succeeds |
+| GraphQL Introspection | T1592 | API9:2023 | `graphql-cop`, `clairvoyance` | Introspection enabled in prod | Full schema exposed |
 
 ---
 
@@ -70,11 +70,11 @@
 | Technique | MITRE ATT&CK | Tools | Prerequisites | Success Criteria |
 |-----------|-------------|-------|---------------|-----------------|
 | Public S3 Bucket | T1530 | `aws s3 ls s3://BUCKET --no-sign-request` | Bucket name known | Data downloaded |
-| IMDS Credential Theft | T1552.005 | `curl http://169.254.169.254/latest/meta-data/iam/` | SSRF or instance access | IAM credentials extracted |
+| IMDS Credential Theft | T1552.005 | `curl http://169.254.169.254/latest/meta-data/iam/security-credentials/` then append the returned role name (IMDSv2 requires an `X-aws-ec2-metadata-token` header) | SSRF or instance access | IAM credentials extracted |
 | Overprivileged IAM | T1078.004 | `enumerate-iam`, `Pacu` | Valid AWS creds | Privilege escalation path found |
 | Lambda Code Injection | T1059 | Modify Lambda env vars via API | Lambda write access | Code execution in Lambda |
 | Azure Managed Identity | T1552.005 | `curl $IDENTITY_ENDPOINT` | Code exec on Azure resource | Token for other services |
-| GCP Metadata | T1552.005 | `curl -H "Metadata-Flavor: Google" http://metadata.google/...` | SSRF or instance access | Service account token |
+| GCP Metadata | T1552.005 | `curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token` | SSRF or instance access | Service account token |
 
 ---
 

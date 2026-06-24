@@ -8,7 +8,7 @@ description: >
   code, review Terraform for security, check Kubernetes manifests, audit Dockerfiles, validate
   cloud configurations, or assess IaC compliance. Also trigger on: 'IaC scan', 'Terraform
   security', 'K8s security', 'Docker security', 'cloud misconfiguration', 'CIS benchmark',
-  'infrastructure audit', 'Checkov', 'tfsec', 'KICS', or any request to find security issues
+  'infrastructure audit', 'Checkov', 'tfsec', or any request to find security issues
   in infrastructure definitions — even 'is my Terraform secure' or 'review my deployment config'.
 ---
 
@@ -30,13 +30,20 @@ REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 DATE=$(date +%Y%m%d)
 REPORT_DIR="$REPO_ROOT/security-review"
 mkdir -p "$REPORT_DIR"
+AUTHOR_NAME=$(git config user.name 2>/dev/null || echo "N/A")
+AUTHOR_EMAIL=$(git config user.email 2>/dev/null || echo "N/A")
+REPO_NAME=$(basename "$REPO_ROOT")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "N/A")
+COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
 ```
+
+These variables populate the report Header Metadata (Author, Repository, Branch, Commit).
 
 Scan for IaC files:
 
 | Indicator | IaC Type | Scanner priority |
 |---|---|---|
-| `*.tf`, `*.tfvars`, `.terraform.lock.hcl` | Terraform | Checkov → tfsec → trivy |
+| `*.tf`, `*.tfvars`, `.terraform.lock.hcl` | Terraform | Checkov → trivy → tfsec (legacy) |
 | `*.yaml`/`*.json` with `AWSTemplateFormatVersion` | CloudFormation | Checkov → cfn-lint |
 | `*.yaml` with `apiVersion`/`kind` | Kubernetes | Checkov → trivy → kubesec |
 | `Dockerfile*` | Docker | Checkov → trivy → hadolint |
@@ -47,14 +54,20 @@ Scan for IaC files:
 
 ```bash
 echo "=== IaC file detection ==="
-find "$REPO_ROOT" -maxdepth 4 \
+IAC_FILES=$(find "$REPO_ROOT" -maxdepth 4 \
   \( -name "*.tf" -o -name "Dockerfile*" -o -name "*.yaml" -o -name "*.yml" \
      -o -name "*.bicep" -o -name "Chart.yaml" \) \
-  -not -path "*/.terraform/*" -not -path "*/node_modules/*" \
-  | head -50
+  -not -path "*/.terraform/*" -not -path "*/node_modules/*")
+echo "$IAC_FILES" | head -50
+
+if [ -z "$IAC_FILES" ]; then
+  echo "No IaC files detected under $REPO_ROOT. Nothing to scan."
+  echo "Provide a path containing Terraform/CloudFormation/Kubernetes/Docker/Helm/Ansible/ARM files."
+  exit 0
+fi
 ```
 
-If no IaC files found → stop with guidance.
+If `$IAC_FILES` is empty the run stops above with guidance.
 
 ---
 
@@ -70,7 +83,7 @@ if command -v checkov &>/dev/null; then
     --output json \
     --compact \
     --quiet \
-    2>/dev/null | tee "$CHECKOV_JSON"
+    > "$CHECKOV_JSON" 2>/dev/null
 
   echo "Checkov results: $CHECKOV_JSON"
 else
@@ -84,23 +97,60 @@ fi
 Run the best supplementary scanner for the detected IaC type:
 
 ```bash
-# Terraform — tfsec (fast, good HCL understanding)
-if [ -n "$(find . -name '*.tf' -maxdepth 3)" ] && command -v tfsec &>/dev/null; then
-  tfsec "$REPO_ROOT" --format json > "$REPORT_DIR/tfsec-results-${DATE}.json" 2>/dev/null
-fi
-
-# Docker/K8s/IaC — trivy config mode
+# Docker/K8s/Terraform/IaC — trivy config mode (preferred for Terraform misconfig)
 if command -v trivy &>/dev/null; then
   trivy config "$REPO_ROOT" --format json > "$REPORT_DIR/trivy-config-${DATE}.json" 2>/dev/null
 fi
 
-# Dockerfile — hadolint
-if [ -f "$REPO_ROOT/Dockerfile" ] && command -v hadolint &>/dev/null; then
-  hadolint "$REPO_ROOT/Dockerfile" --format json > "$REPORT_DIR/hadolint-${DATE}.json" 2>/dev/null
+# Terraform — tfsec (legacy fallback only).
+# NOTE: tfsec is deprecated; Aqua Security merged it into Trivy (2023). Prefer `trivy config`
+# above for Terraform misconfig scanning. Run tfsec only if trivy is unavailable.
+if find "$REPO_ROOT" -maxdepth 3 -name '*.tf' -print -quit | grep -q . \
+   && ! command -v trivy &>/dev/null && command -v tfsec &>/dev/null; then
+  tfsec "$REPO_ROOT" --format json > "$REPORT_DIR/tfsec-results-${DATE}.json" 2>/dev/null
+fi
+
+# CloudFormation — cfn-lint
+if find "$REPO_ROOT" -maxdepth 4 \( -name '*.yaml' -o -name '*.yml' -o -name '*.json' \) \
+     -print -quit | grep -q . && command -v cfn-lint &>/dev/null; then
+  cfn-lint "$REPO_ROOT" --format json > "$REPORT_DIR/cfn-lint-${DATE}.json" 2>/dev/null
+fi
+
+# Kubernetes — kubesec (per manifest)
+if command -v kubesec &>/dev/null; then
+  find "$REPO_ROOT" -maxdepth 4 \( -name '*.yaml' -o -name '*.yml' \) \
+       -not -path "*/.terraform/*" -not -path "*/node_modules/*" -print0 2>/dev/null \
+    | while IFS= read -r -d '' MANIFEST; do
+        kubesec scan "$MANIFEST" >> "$REPORT_DIR/kubesec-${DATE}.json" 2>/dev/null
+      done
+fi
+
+# Helm — checkov with the helm framework
+if find "$REPO_ROOT" -maxdepth 4 -name 'Chart.yaml' -print -quit | grep -q . \
+   && command -v checkov &>/dev/null; then
+  checkov -d "$REPO_ROOT" --framework helm --output json --compact --quiet \
+    > "$REPORT_DIR/checkov-helm-${DATE}.json" 2>/dev/null
+fi
+
+# Ansible — checkov with the ansible framework
+if find "$REPO_ROOT" -maxdepth 4 \( -name '*.yml' -o -name '*.yaml' \) -print -quit | grep -q . \
+   && command -v checkov &>/dev/null; then
+  checkov -d "$REPO_ROOT" --framework ansible --output json --compact --quiet \
+    > "$REPORT_DIR/checkov-ansible-${DATE}.json" 2>/dev/null
+fi
+
+# Dockerfile — hadolint (scan every detected Dockerfile, not only repo-root)
+if command -v hadolint &>/dev/null; then
+  find "$REPO_ROOT" -maxdepth 4 -name 'Dockerfile*' \
+       -not -path "*/.terraform/*" -not -path "*/node_modules/*" -print0 2>/dev/null \
+    | while IFS= read -r -d '' DOCKERFILE; do
+        hadolint "$DOCKERFILE" --format json >> "$REPORT_DIR/hadolint-${DATE}.json" 2>/dev/null
+      done
 fi
 ```
 
-If no scanner is available → proceed with manual review only, note it in the report.
+If no scanner is available → proceed with manual review only, and set the report's
+"Scanners Used" field to `manual only`.
 
 For each finding extract: check ID, resource, file:line, severity, description, guideline/benchmark.
 
@@ -165,6 +215,11 @@ Use the same Likelihood × Impact matrix as other security skills:
 **IaC-specific likelihood factors:** Is the resource internet-facing? Is it in production?
 Does it handle sensitive data? Is the misconfiguration exploitable without additional access?
 
+**Finding tags** (set the report's `Tag` field from severity):
+- `[BLOCK]` — Critical / High, must-fix before merge/deploy
+- `[WARN]` — Medium, should-fix
+- `[INFO]` — Low / Info, defense-in-depth
+
 Map findings to CIS benchmarks where applicable (CIS AWS, CIS GCP, CIS Azure, CIS Kubernetes, CIS Docker).
 
 ---
@@ -188,11 +243,18 @@ Always document rationale: `FP — ALB is intentionally internet-facing per desi
 | Kubernetes | CIS Kubernetes Benchmark | v1.8 |
 | Docker | CIS Docker Benchmark | v1.6 |
 
-## Step 5 — Correlate & Deduplicate
+## Step 5 — Correlate, Deduplicate & Map Coverage
 
 - Merge automated + manual findings — no duplicates
 - Classify each automated finding as TP or FP with context
 - Note scanner coverage gaps (e.g. logic-level misconfigs that no scanner catches)
+- **CIS Benchmark Coverage:** for the provider(s) in scope, tally per-section
+  Checks Applicable / Pass / Fail / N-A for the report's CIS Benchmark Coverage table.
+  Derive Pass/Fail counts from checkov/trivy output where the scanner reports per-check
+  results; where no scanner number is available, mark the cell `—` (best-effort, do not fabricate).
+- **Compliance Mapping:** map each finding to the controls in the report's Compliance Mapping
+  table (ISO 27001:2022 A.8.8 — Technical Vulnerabilities, NIS2 Art. 21(2)(e), SOC 2 CC6.6).
+  Leave a control row `—` if no finding maps to it.
 
 ---
 

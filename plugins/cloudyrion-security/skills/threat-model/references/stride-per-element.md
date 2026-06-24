@@ -58,6 +58,6 @@ Apply STRIDE categories based on the DFD element type. Not all categories apply 
 | Spoofing | T1078 (Valid Accounts), T1134 (Token Manipulation), T1557 (AitM) |
 | Tampering | T1565 (Data Manipulation), T1027 (Obfuscated Files), T1195 (Supply Chain) |
 | Repudiation | T1070 (Indicator Removal), T1036 (Masquerading) |
-| Info Disclosure | T1005 (Data from Local System), T1039 (Network Shared Drive), T1567 (Exfiltration) |
+| Info Disclosure | T1005 (Data from Local System), T1039 (Network Shared Drive), T1567 (Exfiltration), T1552 (Unsecured Credentials) |
 | Denial of Service | T1498 (Network DoS), T1499 (Endpoint DoS), T1489 (Service Stop) |
 | Elevation of Privilege | T1068 (Exploitation for Priv Esc), T1548 (Abuse Elevation Control) |

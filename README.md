@@ -58,12 +58,13 @@ That's it. All 12 skills are now available.
 Run `/cloudyrion-security:suite` for a complete security assessment. It orchestrates all skills in the right order:
 
 ```
-Phase 0  Quick Scan (optional)          — fast triage
-Phase 1  Code Review, API, IaC, SBOM    — independent scans
-Phase 2  Architecture + Threat Model    — consumes Phase 1 findings
-Phase 3  Compliance + Risk Register     — aggregates everything
-Phase 4  Vibe Patch (if findings exist) — auto-remediation
-   =>    Unified Dashboard              — single report with cross-references
+Phase 0  Quick Scan (optional)             — fast triage
+Phase 1  Code Review, API, IaC, SBOM       — independent scans
+Phase 2  Architecture + Threat Model       — consumes Phase 1 findings
+Phase 3  Attack Scenarios (if findings)    — offensive validation of threat-model/code-review findings
+Phase 4  Compliance + Risk Register        — aggregates everything
+Phase 5  Vibe Patch (if findings exist)    — auto-remediation
+   =>    Unified Dashboard                 — single report with cross-references
 ```
 
 ## Built-in Hooks
@@ -72,9 +73,9 @@ Three automated checks ship with the plugin (active by default):
 
 | Trigger | What happens |
 |---------|-------------|
-| You write or edit a file | Scans for hardcoded secrets (API keys, tokens, passwords) |
-| You modify a dependency file | Reminds you to run an SBOM vulnerability check |
-| You create a PR with `gh` | Reminds you to run a quick-scan before merging |
+| You write or edit a file | Scans for hardcoded secrets (API keys, tokens, passwords) and surfaces them to Claude via JSON `additionalContext` |
+| You modify a dependency file | Surfaces a note to Claude via JSON `additionalContext` to run an SBOM vulnerability check |
+| Before you open a PR with `gh` | Reminds you to run a quick-scan before merging |
 
 To disable a hook, remove its entry from `hooks/hooks.json` in the plugin directory.
 

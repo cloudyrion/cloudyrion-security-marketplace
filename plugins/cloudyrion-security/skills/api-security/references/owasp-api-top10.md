@@ -148,7 +148,7 @@ insecure defaults.
 
 ---
 
-## API10:2023 — Unsafe Consumption of Third-Party APIs
+## API10:2023 — Unsafe Consumption of APIs
 
 **What it is:** API trusts data from third-party services without validation, enabling
 transitive attacks.

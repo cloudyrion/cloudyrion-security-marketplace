@@ -40,6 +40,7 @@ Scan the repo and check each condition. A skill runs if its condition is met:
 | **sbom** | Package manifests found | Glob for `package.json`, `requirements.txt`, `Pipfile`, `Cargo.toml`, `go.mod`, `pom.xml`, `build.gradle`, `Gemfile`, `*.csproj`, `composer.json` |
 | **threat-model** | Always (if architecture docs exist or code is non-trivial) | Check for docs in `docs/`, `architecture/`, `*.drawio`, `*.puml`, or >5 source files |
 | **architecture-review** | Architecture docs or diagrams found | Glob for `*.drawio`, `*.puml`, `*architecture*`, `*design*`, `*hld*`, `*lld*` in `docs/` or repo root |
+| **attack-scenarios** | Optional offensive validation — threat-model OR code-review produced findings | Requires a threat-model report or code-review report with at least one finding to exploit |
 | **compliance-mapper** | Always (runs on aggregated findings) | Requires at least one upstream skill to have produced findings |
 | **risk-register** | Always (runs on aggregated findings) | Requires at least one upstream skill to have produced findings |
 | **vibe-patch** | Code review found actionable findings | Requires `security-code-review` report with `[BLOCK]` or `[WARN]` findings |
@@ -57,15 +58,22 @@ Security Suite — Pipeline Plan
 [x] sbom              — package.json found
 [x] threat-model      — Architecture docs in docs/
 [x] architecture-review — HLD found in docs/architecture.md
+[?] attack-scenarios   — Optional, if threat-model or code-review produces findings
 [x] compliance-mapper           — Will run on aggregated findings
 [x] risk-register      — Will run on aggregated findings
 [?] vibe-patch         — Depends on code review results
 
-Estimated skills to run: 7 of 9
+Estimated skills to run: 7 of 10
 Proceed? (Y/n)
 ```
 
 Wait for user confirmation before proceeding. If the user wants to add/remove skills, adjust.
+
+> **Non-interactive mode.** Treat the run as non-interactive when the user explicitly asks
+> for no prompts (e.g. "run the whole suite without asking", "CI mode", "unattended"). In
+> non-interactive mode, auto-confirm this plan and every per-step prompt (quick-scan,
+> vibe-patch, etc.) using the defaults instead of blocking at any gate. Otherwise (the
+> default) prompt and wait for confirmation as described above.
 
 ---
 
@@ -83,6 +91,12 @@ If no (or if running non-interactively), skip directly to Step 1.
 
 
 ## Step 1 — Run Independent Skills (Parallel-capable)
+
+> **Invoke, do not reimplement.** For every numbered sub-skill step below (items 1–10 across
+> Steps 1, 2, 2.5, 3, and 4), activate the named slash-command skill as its own skill (e.g.
+> run `/cloudyrion-security:code-review`), wait for it to finish, then verify its report
+> exists before moving on. Do NOT reimplement a sub-skill's logic inline — that would lose its
+> reference files, templates, and tag mappings.
 
 These skills have no upstream dependencies. Run them in sequence (or tell the user they
 could be run in parallel in separate sessions):
@@ -104,11 +118,17 @@ could be run in parallel in separate sessions):
 4. **`/cloudyrion-security:sbom`** (if applicable)
    - Output: `sbom/sbom-report-YYYYMMDD.md` + SBOM file
 
-After each skill completes, confirm the report was written:
+After each skill completes, confirm the report was written. The sbom skill writes to
+`$REPO_ROOT/sbom/` (not `security-review/`), so check that directory too:
 
 ```bash
 ls -lh "$REVIEW_DIR/"
+ls -lh "$REPO_ROOT/sbom/"   # SBOM report + SBOM file land here
 ```
+
+> Note: `REVIEW_DIR`/`REPO_ROOT` are local to this orchestrator's verification commands.
+> Shell variables do NOT persist into the separately-activated sub-skills — each sub-skill
+> sets up its own paths.
 
 ---
 
@@ -126,24 +146,35 @@ These skills benefit from Phase 1 outputs:
 
 ---
 
+## Step 2.5 — Run Offensive Validation (Optional)
+
+Run only if threat-model OR code-review produced findings to exploit:
+
+7. **`/cloudyrion-security:attack-scenarios`** (if applicable)
+   - Feed it: threats from the threat model, vulnerabilities from code review (and architecture review findings)
+   - Output: `security-review/pentest-attack-scenarios-YYYYMMDD.md`
+
+---
+
 ## Step 3 — Run Aggregation Skills
 
 These skills consume all upstream outputs:
 
-7. **`/cloudyrion-security:compliance-mapper`**
-   - Feed it: ALL findings from steps 1-2
-   - Ask user which frameworks to map against (default: ISO 27001, NIST CSF 2.0, OWASP ASVS)
+8. **`/cloudyrion-security:compliance-mapper`**
+   - Feed it: ALL findings from steps 1-2.5
+   - Ask user which frameworks to map against (default: ISO 27001:2022, NIST CSF 2.0, OWASP ASVS 5.0)
    - Output: `security-review/compliance-matrix-YYYYMMDD.md`
 
-8. **`/cloudyrion-security:risk-register`**
+9. **`/cloudyrion-security:risk-register`**
    - Feed it: ALL findings + threat model + compliance gaps
-   - Output: Excel workbook in `security-review/`
+   - Output: Excel workbook in `security-review/` (requires the `xlsx` skill / openpyxl; see note below)
+   - **Dependency:** risk-register relies on the `xlsx` skill and openpyxl to write the workbook. Per risk-register's own fallback chain (xlsx skill → openpyxl → CSV), if Excel generation is unavailable it falls back to a CSV register — capture that CSV path so the dashboard's Risk Register Summary can still be populated.
 
 ---
 
 ## Step 4 — Run Remediation (Optional)
 
-9. **`/cloudyrion-security:vibe-patch`** (if code review found `[BLOCK]` or `[WARN]` findings)
+10. **`/cloudyrion-security:vibe-patch`** (if code review found `[BLOCK]` or `[WARN]` findings)
    - Ask user: "Code review found N actionable findings. Run auto-patching? (y/N)"
    - If yes: runs vibe-patch, creates branch + commits + PR
    - Output: `security-review/security-vibe-patch-report-YYYYMMDD.md`
@@ -175,14 +206,14 @@ and the overall risk level: Critical / High / Medium / Low>
 
 ## Findings Summary
 
-| Severity | Code Review | API Review | IaC Scan | Architecture | Threat Model | Total |
-|----------|------------|------------|----------|--------------|--------------|-------|
-| Critical | X          | X          | X        | X            | X            | **X** |
-| High     | X          | X          | X        | X            | X            | **X** |
-| Medium   | X          | X          | X        | X            | X            | **X** |
-| Low      | X          | X          | X        | X            | X            | **X** |
-| Info     | X          | X          | X        | X            | X            | **X** |
-| **Total**| **X**      | **X**      | **X**    | **X**        | **X**        | **X** |
+| Severity | Code Review | API Review | IaC Scan | Architecture | Threat Model | Attack Scenarios | Total |
+|----------|------------|------------|----------|--------------|--------------|------------------|-------|
+| Critical | X          | X          | X        | X            | X            | X                | **X** |
+| High     | X          | X          | X        | X            | X            | X                | **X** |
+| Medium   | X          | X          | X        | X            | X            | X                | **X** |
+| Low      | X          | X          | X        | X            | X            | X                | **X** |
+| Info     | X          | X          | X        | X            | X            | X                | **X** |
+| **Total**| **X**      | **X**      | **X**    | **X**        | **X**        | **X**            | **X** |
 
 ---
 
@@ -192,6 +223,7 @@ and the overall risk level: Critical / High / Medium / Low>
 |---|--------|----|-------|----------|-----|---------------|--------|
 | 1 | Code Review | SCR-001 | ... | Critical | CWE-89 | T1190 | [BLOCK] |
 | 2 | API Review | API-003 | ... | High | CWE-285 | T1078 | [BLOCK] |
+| 3 | Attack Scenarios | PEN-001 | ... | High | CWE-918 | T1190 | [BLOCK] |
 | ... | | | | | | | |
 
 ---
@@ -206,11 +238,15 @@ and the overall risk level: Critical / High / Medium / Low>
 
 ## Compliance Posture
 
+> Denominators below are the canonical control counts sourced from
+> compliance-mapper `references/framework-controls.md` (do not hardcode — cite the
+> edition that produces each total). Use the exact figures and editions from that table.
+
 | Framework | Controls Mapped | Gaps Found | Coverage |
 |-----------|----------------|------------|----------|
-| ISO 27001 | X/114 | X | X% |
+| ISO 27001:2022 | X/93 | X | X% |
 | NIST CSF 2.0 | X/106 | X | X% |
-| OWASP ASVS | X/286 | X | X% |
+| OWASP ASVS 5.0 (2025) | X/~350 | X | X% |
 
 ---
 
@@ -227,6 +263,10 @@ and the overall risk level: Critical / High / Medium / Low>
 - Inherent risk (Critical/High): X
 - Residual risk (after mitigations): X
 - Top risk: <title>
+
+> risk-register scores on a 1–5 Likelihood × Impact scale (L×I 16–25 = Critical, 10–15 = High,
+> 5–9 = Medium, 1–4 = Low). Map those bands to the qualitative Critical/High/Medium/Low used by
+> the rest of this dashboard when aggregating, so the counts above are comparable across skills.
 
 ---
 
@@ -247,10 +287,11 @@ and the overall risk level: Critical / High / Medium / Low>
 | Security Code Review | `security-review/security-code-review-report-YYYYMMDD.md` | SCR-YYYYMMDD-001 |
 | API Security Review | `security-review/api-security-report-YYYYMMDD.md` | API-YYYYMMDD-001 |
 | IaC Security Scan | `security-review/iac-security-report-YYYYMMDD.md` | IAC-YYYYMMDD-001 |
-| SBOM Report | `sbom/sbom-report-YYYYMMDD.md` | — |
+| SBOM Report | `sbom/sbom-report-YYYYMMDD.md` | SBOM-YYYYMMDD-001 |
 | Architecture Review | `security-review/security-architecture-review-YYYYMMDD.md` | SAR-YYYYMMDD-001 |
-| Threat Model | `security-review/threat-model-YYYYMMDD.md` | — |
-| Compliance Matrix | `security-review/compliance-matrix-YYYYMMDD.md` | — |
+| Threat Model | `security-review/threat-model-YYYYMMDD.md` | TM-YYYYMMDD-001 |
+| Attack Scenarios Playbook | `security-review/pentest-attack-scenarios-YYYYMMDD.md` | PEN-YYYYMMDD-001 |
+| Compliance Matrix | `security-review/compliance-matrix-YYYYMMDD.md` | CMP-YYYYMMDD-001 |
 | Risk Register | `security-review/<name>.xlsx` | — |
 | Vibe Patch Report | `security-review/security-vibe-patch-report-YYYYMMDD.md` | SVP-YYYYMMDD-001 |
 | **Dashboard** | `security-review/security-suite-dashboard-YYYYMMDD.md` | SSD-YYYYMMDD-001 |
@@ -296,19 +337,20 @@ When the same vulnerability appears in multiple skill reports (e.g., SQL injecti
 
 ## Execution Rules
 
-1. **Always confirm the plan** before starting — the user may want to skip or reorder skills
+1. **Confirm the plan** before starting — the user may want to skip or reorder skills. In non-interactive mode (see Step 0), auto-confirm the plan and all per-step prompts using defaults rather than blocking
 2. **Check each report exists** after each skill completes before moving to the next
 3. **Pass context forward** — when invoking a downstream skill, mention relevant upstream findings
 4. **Don't duplicate work** — if code review already found an issue, threat model should reference it, not rediscover it
 5. **Track progress visually** — after each skill completes, show a progress update:
    ```
-   Progress: [████████░░░░░░░░] 4/9 skills complete
+   Progress: [██████░░░░░░░░░░] 4/10 skills complete
    ✓ cloudyrion-security:code-review (14 findings)
    ✓ cloudyrion-security:api-security (6 findings)
    ✓ cloudyrion-security:iac-scanner (skipped — no IaC)
    ✓ cloudyrion-security:sbom (142 components, 3 vulnerable)
    → cloudyrion-security:threat-model (running...)
    ○ cloudyrion-security:architecture-review
+   ○ cloudyrion-security:attack-scenarios
    ○ cloudyrion-security:compliance-mapper
    ○ cloudyrion-security:risk-register
    ○ cloudyrion-security:vibe-patch

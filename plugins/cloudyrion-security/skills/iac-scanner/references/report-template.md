@@ -13,14 +13,14 @@ Replace all `<placeholders>`.
 |----------------|-------------------------------------------|
 | Document ID    | IAC-YYYYMMDD-001                          |
 | Date           | YYYY-MM-DD                                |
-| Author         | <name (email)>                            |
+| Author         | <Firstname Lastname (email@domain.com)>   |
 | Repository     | <repo name>                               |
 | Branch         | <branch>                                  |
 | Commit         | <short hash> — <message>                  |
 | IaC Types      | Terraform / K8s / Docker / Helm / Ansible |
 | Scanners Used  | Checkov / tfsec / trivy / hadolint / manual only |
 | Classification | CONFIDENTIAL — Internal Security Use Only |
-| Status         | DRAFT | FINAL                             |
+| Status         | DRAFT / FINAL                             |
 
 ---
 
@@ -63,8 +63,8 @@ overall posture, top 3 recommended actions.>
 | Field       | Value                                    |
 |-------------|------------------------------------------|
 | ID          | FINDING-001                              |
-| Severity    | Critical / High / Medium / Low           |
-| Tag         | [BLOCK] / [WARN] / [INFO]               |
+| Severity    | Critical / High / Medium / Low / Info    |
+| Tag         | [BLOCK] / [WARN] / [INFO]                 |
 | Category    | IAM / Network / Encryption / Logging / Container / State |
 | CIS Ref     | <benchmark ID or "—">                    |
 | Check ID    | <Checkov/tfsec rule ID or "Manual">      |
@@ -104,12 +104,14 @@ overall posture, top 3 recommended actions.>
 
 | Benchmark | Section | Checks Applicable | Pass | Fail | N/A |
 |-----------|---------|-------------------|------|------|-----|
-| CIS AWS 2.0 | IAM | | | | |
-| CIS AWS 2.0 | Storage | | | | |
-| CIS AWS 2.0 | Logging | | | | |
-| CIS AWS 2.0 | Networking | | | | |
+| CIS AWS Foundations v3.0 | IAM | | | | |
+| CIS AWS Foundations v3.0 | Storage | | | | |
+| CIS AWS Foundations v3.0 | Logging | | | | |
+| CIS AWS Foundations v3.0 | Networking | | | | |
 
-<Adjust benchmarks to match the cloud provider(s) in scope.>
+<Adjust benchmarks (and versions) to match the cloud provider(s) in scope; see the
+CIS Benchmark Versions table in SKILL.md Step 4. Pass/Fail/N-A counts are best-effort:
+populate from scanner output where available, otherwise mark the cell "—".>
 
 ---
 
@@ -125,9 +127,12 @@ overall posture, top 3 recommended actions.>
 
 | Framework | Control | Finding(s) | Status |
 |-----------|---------|------------|--------|
-| ISO 27001 | A.12.6 — Technical Vulnerability Mgmt | | |
+| ISO 27001:2022 | A.8.8 — Management of Technical Vulnerabilities | | |
 | NIS2 | Art. 21(2)(e) — Network security | | |
 | SOC 2 | CC6.6 — Encryption in transit | | |
+
+<Map each finding ID to the listed controls (see SKILL.md Step 5). Best-effort: leave a
+cell blank with "—" if no finding maps to that control.>
 
 ---
 

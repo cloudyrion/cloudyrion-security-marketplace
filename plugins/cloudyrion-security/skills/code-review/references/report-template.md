@@ -13,14 +13,14 @@ Use this exact structure for every report. Replace all `<placeholders>` with act
 |----------------|----------------------------------------------------|
 | Document ID    | SCR-YYYYMMDD-001                                   |
 | Date           | YYYY-MM-DD                                         |
-| Author         | Firstname Lastname (email@domain.com)              |
+| Author         | <Firstname Lastname (email@domain.com)>           |
 | Repository     | <repo name>                                        |
 | Branch         | <branch>                                           |
 | Commit         | <short hash> — <commit message>                    |
 | Files Reviewed | <list of files>                                    |
 | Classification | CONFIDENTIAL — Internal Security Use Only          |
-| Status         | DRAFT | FINAL                                      |
-| Semgrep Engine | Pro | OSS | Not available                          |
+| Status         | DRAFT / FINAL                                      |
+| Semgrep Engine | Pro / OSS / Not available                          |
 
 ---
 
@@ -67,16 +67,16 @@ one-line approval recommendation.>
 | Field       | Value                                    |
 |-------------|------------------------------------------|
 | ID          | FINDING-001                              |
-| Severity    | Critical | High | Medium | Low | Info   |
-| Tag         | [BLOCK] | [WARN] | [INFO]               |
-| Category    | Injection | Auth | Crypto | Secrets | Config | Dependency |
+| Severity    | Critical / High / Medium / Low / Info    |
+| Tag         | [BLOCK] / [WARN] / [INFO]                 |
+| Category    | Injection / Auth / Crypto / Secrets / Config / Dependency |
 | CWE         | CWE-<id> — <name>                        |
 | OWASP       | A0X — <category name>                    |
 | Location    | `<file>:<line>`                          |
-| Confidence  | High | Medium | Low                      |
-| Source      | Semgrep Pro | Semgrep OSS | Manual | Dep Scan | Both |
-| Analysis    | Syntactic | Semantic | Interprocedural   |
-| Status      | Open | Resolved | Accepted Risk          |
+| Confidence  | High / Medium / Low                      |
+| Source      | Semgrep Pro / Semgrep OSS / Manual / Dep Scan / Both |
+| Analysis    | Syntactic / Semantic / Interprocedural   |
+| Status      | Open / Resolved / Accepted Risk          |
 
 #### Description
 <What the vulnerability is and why it is exploitable. Specific to this code.>
@@ -85,8 +85,8 @@ one-line approval recommendation.>
 
 | Factor     | Rating              | Rationale                          |
 |------------|---------------------|------------------------------------|
-| Likelihood | High | Medium | Low | <why — reachability, complexity>   |
-| Impact     | High | Medium | Low | <what an attacker achieves>        |
+| Likelihood | High / Medium / Low | <why — reachability, complexity>   |
+| Impact     | High / Medium / Low | <what an attacker achieves>        |
 | Risk Level | Critical–Low        | Likelihood × Impact (see matrix)   |
 
 #### Evidence
@@ -122,9 +122,9 @@ records including password hashes via SQL injection in the search endpoint.">
 
 | Phase              | Score          | Rationale |
 |--------------------|----------------|-----------|
-| Before remediation | HIGH (7.5/10)  |           |
-| After remediation  | LOW (2.5/10)   |           |
-| Risk reduction     | ~67%           |           |
+| Before remediation | <severity (score/10)> | <derive from the highest-severity open findings> |
+| After remediation  | <severity (score/10)> | <residual risk once [BLOCK]/[WARN] findings are resolved> |
+| Risk reduction     | <% reduction>  | <only if a numeric score is computed; otherwise omit this row> |
 
 ---
 
@@ -154,7 +154,7 @@ Reviewer: <Name>  Date: <YYYY-MM-DD>
 | Framework | Control                       | Before        | After     |
 |-----------|-------------------------------|---------------|-----------|
 | SOC 2     | CC6.1 — Logical Access        | At Risk       | Compliant |
-| ISO 27001 | A.14.2.1 — Secure Dev Policy  | Partial       | Compliant |
+| ISO 27001:2022 | A.8.25 — Secure Development Life Cycle | Partial | Compliant |
 | GDPR      | Art. 32 — Security of Processing | At Risk    | Compliant |
 | NIS2      | Art. 21 — Risk Management     | At Risk       | Compliant |
 | DORA      | Art. 7 — ICT Risk Management  | At Risk       | Compliant |
@@ -191,13 +191,13 @@ APPROVED | APPROVED WITH CONDITIONS | NOT APPROVED>
 
 | Rule ID | Location | Severity | CWE | Confidence | Assessment          |
 |---------|----------|----------|-----|------------|---------------------|
-|         |          |          |     |            | TP | FP | NEEDS_REVIEW |
+|         |          |          |     |            | TP / FP / NEEDS_REVIEW |
 
 ## Appendix B — Confirmed False Positives
 
 | Rule ID | Location | Reason | Action                                    |
 |---------|----------|--------|-------------------------------------------|
-|         |          |        | nosec comment | rule tuning | acceptable risk |
+|         |          |        | nosec comment / rule tuning / acceptable risk |
 
 ## Appendix C — Dependency Scan Results
 

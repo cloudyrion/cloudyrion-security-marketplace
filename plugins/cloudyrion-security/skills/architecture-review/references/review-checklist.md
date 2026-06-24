@@ -103,7 +103,38 @@ Structured checklist organized by security domain. For each item, assess:
 | CTR-08 | Pod security standards | Restricted profile (K8s PSS) | Privileged pods allowed |
 | CTR-09 | Runtime security monitoring | Falco, Sysdig, or equivalent | No runtime visibility |
 
-## 8. Sector-Specific Checks
+## 8. Supply Chain & Dependency Architecture
+
+| # | Check | Expected | Anti-pattern if missing |
+|---|-------|----------|----------------------|
+| SUP-01 | SBOM generated in build pipeline | CycloneDX/SPDX produced per build | No inventory of components shipped |
+| SUP-02 | Dependency pinning | Lock files + image digests, no floating tags | `latest` tags, unpinned versions |
+| SUP-03 | Private registry for internal artifacts | Internal packages/images from controlled registry | Pulling internal artifacts from public registries |
+| SUP-04 | Vulnerability scanning in CI/CD | Dependencies + images scanned on every build | Vulnerable components ship undetected |
+| SUP-05 | Third-party API isolation | Circuit breakers, validation, timeouts around external calls | Direct unguarded calls to third-party APIs |
+| SUP-06 | Provenance / signature verification | Verify package + image signatures before use | Any artifact accepted without integrity check |
+
+## 9. API Architecture
+
+| # | Check | Expected | Anti-pattern if missing |
+|---|-------|----------|----------------------|
+| API-01 | Single entry point via API gateway | All external traffic routed through gateway | Services exposed directly to clients |
+| API-02 | Authentication at gateway AND service level | Every service validates auth independently | Gateway-only auth — bypass = full access |
+| API-03 | Input validation at the boundary | Schema validation enforced at runtime, not just spec | Unvalidated input reaches services |
+| API-04 | Rate limiting per-endpoint | Per-endpoint and per-client throttling | No throttling — abuse/DoS trivial |
+| API-05 | API versioning and deprecation strategy | Explicit versioning with deprecation policy | Breaking changes shipped without versioning |
+
+## 10. Cryptographic Architecture
+
+| # | Check | Expected | Anti-pattern if missing |
+|---|-------|----------|----------------------|
+| CRY-01 | Algorithm selection matches data classification | Strong, current algorithms appropriate to sensitivity | Weak/legacy algorithms for sensitive data |
+| CRY-02 | No custom crypto implementations | Vetted, standard libraries only | Hand-rolled cryptography |
+| CRY-03 | TLS 1.2+ everywhere, TLS 1.3 preferred | Modern TLS on all flows | TLS 1.0/1.1 or plaintext anywhere |
+| CRY-04 | Certificate management automated | Automated rotation, short-lived certs | Manual/long-lived certs, self-signed in production |
+| CRY-05 | Post-quantum readiness assessed (long-lived data) | PQC migration path for data with long confidentiality horizon | No PQC consideration for long-lived secrets |
+
+## 11. Sector-Specific Checks
 
 ### Telco / 5G
 | # | Check | Reference |

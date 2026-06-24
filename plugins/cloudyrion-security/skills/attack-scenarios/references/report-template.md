@@ -9,13 +9,13 @@
 |-------|-------|
 | Document ID | PEN-YYYYMMDD-001 |
 | Date | YYYY-MM-DD |
-| Tester | <name> |
+| Tester | <Firstname Lastname (email@domain.com)> |
 | Target System | <system name> |
 | Assessment Type | Black-box / Grey-box / White-box |
 | Attacker Profile | External / Authenticated / Insider / Compromised |
 | Scope | <components in scope> |
 | Rules of Engagement | <constraints: no DoS, no data modification, etc.> |
-| Classification | CONFIDENTIAL — Authorized Personnel Only |
+| Classification | CONFIDENTIAL — Internal Security Use Only |
 | Status | DRAFT / FINAL |
 
 ---
@@ -33,6 +33,7 @@ most impactful scenario, overall attack surface assessment, top 3 recommendation
 | High       |       |             |         |          |
 | Medium     |       |             |         |          |
 | Low        |       |             |         |          |
+| Info       |       |             |         |          |
 | **Total**  |       |             |         |          |
 
 ---
@@ -92,7 +93,9 @@ most impactful scenario, overall attack surface assessment, top 3 recommendation
 | CWE | CWE-89 |
 | Likelihood | High / Medium / Low |
 | Impact | High / Medium / Low |
-| Risk | Critical / High / Medium / Low |
+| Risk | Critical / High / Medium / Low / Info |
+| Tag | [BLOCK] / [WARN] / [INFO] |
+| Status | Exploitable / Blocked / Untested |
 
 #### Prerequisites
 <What the attacker needs before starting.>
@@ -131,9 +134,9 @@ most impactful scenario, overall attack surface assessment, top 3 recommendation
 
 ## 6. Risk Summary Matrix
 
-| ID | Title | Target | ATT&CK | Likelihood | Impact | Risk | Status |
-|----|-------|--------|--------|------------|--------|------|--------|
-| ATK-001 | | | | | | | |
+| ID | Title | Target | ATT&CK | Likelihood | Impact | Risk | Tag | Status |
+|----|-------|--------|--------|------------|--------|------|-----|--------|
+| ATK-001 | | | | | | | | |
 
 ---
 
@@ -188,7 +191,7 @@ most impactful scenario, overall attack surface assessment, top 3 recommendation
 
 | Field | Value |
 |-------|-------|
-| Tester | <name> |
+| Tester | <Firstname Lastname (email@domain.com)> |
 | Role | Senior Penetration Tester |
 | Date | YYYY-MM-DD |
 | Signature | <name> |

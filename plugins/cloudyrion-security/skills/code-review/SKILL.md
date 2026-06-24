@@ -22,32 +22,52 @@ Before starting, read the report template:
 ## Step 1 — Collect Context
 
 ```bash
-# Author & repo metadata
-AUTHOR_NAME=$(git config user.name)
-AUTHOR_EMAIL=$(git config user.email)
-REPO_NAME=$(basename $(git rev-parse --show-toplevel))
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-COMMIT=$(git log -1 --format="%h — %s")
-REVIEW_DIR=$(git rev-parse --show-toplevel)/security-review
+# Author & repo metadata (with non-git fallbacks)
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 DATE=$(date +%Y%m%d)
+REVIEW_DIR="$REPO_ROOT/security-review"
+mkdir -p "$REVIEW_DIR"
+AUTHOR_NAME=$(git config user.name 2>/dev/null || echo "N/A")
+AUTHOR_EMAIL=$(git config user.email 2>/dev/null || echo "N/A")
+REPO_NAME=$(basename "$REPO_ROOT")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "N/A")
+COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
 REPORT_FILE="$REVIEW_DIR/security-code-review-report-${DATE}.md"
 DOC_ID="SCR-${DATE}-001"
 
-mkdir -p "$REVIEW_DIR"
+echo "Report will be written to: $REPORT_FILE"
 ```
 
 ### Determine scope
-Default to **changed files only** (PR/branch context). Fall back to full repo if working tree is clean:
+Default to **changed files only** (PR/branch context). Fall back to full repo if working tree is clean.
+Derive the default branch dynamically so non-main/master defaults (e.g. `develop`) work, and announce
+which scope mode was selected:
 
 ```bash
-# Prefer: files changed vs default branch
-FILES=$(git diff --name-only $(git merge-base HEAD main || git merge-base HEAD master) HEAD 2>/dev/null)
+# Resolve the default branch (origin/HEAD), else fall back to local main/master
+DEFAULT_BRANCH=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+[ -z "$DEFAULT_BRANCH" ] && git rev-parse --verify --quiet main >/dev/null 2>&1 && DEFAULT_BRANCH=main
+[ -z "$DEFAULT_BRANCH" ] && git rev-parse --verify --quiet master >/dev/null 2>&1 && DEFAULT_BRANCH=master
+
+# Prefer: files changed vs the default branch
+SCOPE_MODE=""
+if [ -n "$DEFAULT_BRANCH" ]; then
+  BASE=$(git merge-base HEAD "$DEFAULT_BRANCH" 2>/dev/null)
+  if [ -n "$BASE" ]; then
+    FILES=$(git diff --name-only "$BASE" HEAD 2>/dev/null)
+    SCOPE_MODE="changed vs $DEFAULT_BRANCH"
+  fi
+fi
 # Fallback: staged + unstaged changes
-[ -z "$FILES" ] && FILES=$(git diff --name-only HEAD)
+if [ -z "$FILES" ]; then FILES=$(git diff --name-only HEAD 2>/dev/null); SCOPE_MODE="working-tree vs HEAD"; fi
 # Fallback: all tracked files
-[ -z "$FILES" ] && FILES=$(git ls-files)
+if [ -z "$FILES" ]; then FILES=$(git ls-files); SCOPE_MODE="all tracked files"; fi
+echo "Scope mode: ${SCOPE_MODE:-none}"
 echo "$FILES"
 ```
+
+When passing the file list to scanners, iterate it null-safely (e.g. `git diff -z ... | xargs -0`)
+so paths containing spaces are not word-split — see Step 2a.
 
 ### Detect tech stack
 Inspect file extensions and config files to determine the primary language(s). This drives which
@@ -73,26 +93,36 @@ Detect whether Semgrep is installed and whether Pro is available:
 
 ```bash
 if command -v semgrep &>/dev/null; then
-  # Test if Pro engine is available (licensed)
-  if semgrep scan --pro --dry-run 2>&1 | grep -q "error"; then
-    SEMGREP_ENGINE="OSS"
-    SEMGREP_FLAGS=""
-  else
+  # Detect Pro deterministically from the install itself rather than grepping
+  # mixed stdout/stderr for the substring "error". Pro ships the proprietary
+  # core binary and reports "pro" in its version banner. Do NOT use
+  # `semgrep scan --pro --dry-run` (`--dry-run` is for `semgrep ci`, not `scan`).
+  if semgrep --version 2>/dev/null | grep -qi "pro" || \
+     command -v semgrep-core-proprietary >/dev/null 2>&1; then
     SEMGREP_ENGINE="Pro"
     SEMGREP_FLAGS="--pro"
+  else
+    SEMGREP_ENGINE="OSS"
+    SEMGREP_FLAGS=""
   fi
 
   SEMGREP_JSON="$REVIEW_DIR/semgrep-results-${DATE}.json"
+  SEMGREP_ERR="$REVIEW_DIR/semgrep-stderr-${DATE}.log"
 
-  semgrep scan $SEMGREP_FLAGS \
-    --config=p/default \
-    --config=p/owasp-top-ten \
-    --config=p/secrets \
-    --json \
-    $FILES 2>/dev/null | tee "$SEMGREP_JSON"
+  # Iterate the file list null-safely so paths with spaces are not word-split.
+  # Pipeline stages: [0]=git diff, [1]=xargs/semgrep, [2]=tee. Capture
+  # semgrep's real exit status (PIPESTATUS[1]) instead of `$?`, which would be
+  # tee's status (always 0). Keep stderr in a log so the error-classification
+  # block below can actually read it (do not send it to /dev/null).
+  git diff -z --name-only "${BASE:-HEAD}" HEAD 2>/dev/null | \
+    xargs -0 semgrep scan $SEMGREP_FLAGS \
+      --config=p/default \
+      --config=p/owasp-top-ten \
+      --config=p/secrets \
+      --json 2> "$SEMGREP_ERR" | tee "$SEMGREP_JSON"
+  SEMGREP_EXIT=${PIPESTATUS[1]}   # status of semgrep (git diff=[0], tee=[2])
 
-  SEMGREP_EXIT=$?
-  echo "Engine: $SEMGREP_ENGINE — Results: $SEMGREP_JSON"
+  echo "Engine: $SEMGREP_ENGINE — Results: $SEMGREP_JSON — stderr: $SEMGREP_ERR"
 else
   SEMGREP_ENGINE="Not available"
   SEMGREP_EXIT=-1
@@ -101,8 +131,12 @@ else
 fi
 ```
 
+> If the scoped file list was built differently above, substitute it for the
+> `git diff -z ...` producer here, but always pipe a NUL-delimited list into
+> `xargs -0` rather than expanding an unquoted `$FILES` variable.
+
 **Semgrep error handling:**
-- If Semgrep exits non-zero (`SEMGREP_EXIT != 0`), inspect stderr to distinguish:
+- If Semgrep exits non-zero (`SEMGREP_EXIT != 0`), inspect `$SEMGREP_ERR` to distinguish:
   - **Config error** (invalid rule, network failure fetching rulesets): Log the error, retry with `--config=p/default` only. If still failing, proceed with manual analysis and note "Semgrep config error — reduced ruleset" in the report.
   - **Parse error** (unsupported file type, syntax error in target): Log which files failed to parse. These files are **excluded from SAST coverage** — list them explicitly in Appendix D (Coverage Gaps). Continue scanning remaining files.
   - **Timeout**: Note in report, increase `--timeout` flag if re-running.
@@ -118,18 +152,30 @@ For each Semgrep finding, extract: `check_id`, `path`, `start.line`, `extra.mess
 
 Run the appropriate dependency scanner based on the detected stack:
 
+Use a per-stack output filename and gate each scanner behind both a lockfile/manifest check
+and a `command -v` availability check, so a polyglot repo does not clobber one scanner's JSON
+with another's:
+
 ```bash
-# Python
-pip-audit --format=json 2>/dev/null > "$REVIEW_DIR/dep-audit-${DATE}.json" || true
+# Python — only if a manifest exists and pip-audit is installed
+if { [ -f "$REPO_ROOT/requirements.txt" ] || [ -f "$REPO_ROOT/pyproject.toml" ]; } && command -v pip-audit &>/dev/null; then
+  pip-audit --format=json 2>/dev/null > "$REVIEW_DIR/dep-audit-python-${DATE}.json" || true
+fi
 
 # Node.js
-npm audit --json 2>/dev/null > "$REVIEW_DIR/dep-audit-${DATE}.json" || true
+if [ -f "$REPO_ROOT/package.json" ] && command -v npm &>/dev/null; then
+  npm audit --json 2>/dev/null > "$REVIEW_DIR/dep-audit-node-${DATE}.json" || true
+fi
 
 # Go
-govulncheck ./... 2>/dev/null > "$REVIEW_DIR/dep-audit-${DATE}.txt" || true
+if [ -f "$REPO_ROOT/go.mod" ] && command -v govulncheck &>/dev/null; then
+  govulncheck ./... 2>/dev/null > "$REVIEW_DIR/dep-audit-go-${DATE}.txt" || true
+fi
 
 # Rust
-cargo audit --json 2>/dev/null > "$REVIEW_DIR/dep-audit-${DATE}.json" || true
+if [ -f "$REPO_ROOT/Cargo.toml" ] && command -v cargo-audit &>/dev/null; then
+  cargo audit --json 2>/dev/null > "$REVIEW_DIR/dep-audit-rust-${DATE}.json" || true
+fi
 ```
 
 If the scanner is unavailable, note it in the report and do manual import analysis.
@@ -212,7 +258,21 @@ vulnerable comparisons. Improper cert validation, weak RNG.
 → CWE-327, CWE-330, CWE-326, CWE-295
 
 ### 3e. OWASP Top 10 (2021) Cross-Check
-Walk through all 10 categories (A01–A10) and confirm coverage. Note any gaps.
+Walk through all 10 categories (A01–A10) and confirm coverage. Note any gaps. Use this table as the
+source of truth when filling the per-finding `OWASP` field in the report (`A0X — <category name>`):
+
+| ID  | OWASP Top 10 (2021) Category |
+|-----|------------------------------|
+| A01 | Broken Access Control |
+| A02 | Cryptographic Failures |
+| A03 | Injection |
+| A04 | Insecure Design |
+| A05 | Security Misconfiguration |
+| A06 | Vulnerable and Outdated Components |
+| A07 | Identification and Authentication Failures |
+| A08 | Software and Data Integrity Failures |
+| A09 | Security Logging and Monitoring Failures |
+| A10 | Server-Side Request Forgery (SSRF) |
 
 ### 3f. Language-Specific Issues
 Refer to the stack table in Step 1. Review for language-specific vulnerability patterns that
@@ -274,7 +334,7 @@ Write the full report to: `$REPORT_FILE`
 
 ```bash
 ls -lh "$REVIEW_DIR/"
-echo "Report written: $REPORT_FILE"
+echo "Report written to: $REPORT_FILE"
 ```
 
 ### Classification tags

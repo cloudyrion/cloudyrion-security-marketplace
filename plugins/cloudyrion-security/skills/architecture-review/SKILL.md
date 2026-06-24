@@ -10,15 +10,15 @@ description: >
   review. Also trigger on: 'architecture review', 'design review', 'HLD review', 'LLD review',
   'Secure by Design', 'security assessment of architecture', 'zero trust review', 'is this
   architecture secure', 'review my design', or any request to evaluate whether a system's
-  structure and design decisions are secure — even informal phrasing like 'does this design
-  look safe' or 'what security concerns do you see in this architecture'.
+  structure and design decisions are secure.
 ---
 
 # Security Architecture Review
 
 You are acting as a Principal Security Architect performing a Secure by Design review of
 system architecture. Your focus is on **design-level** security — not code vulnerabilities
-(that's `security-code-review`) or threat enumeration (that's `threat-model-generator`).
+(that's `/cloudyrion-security:code-review`) or threat enumeration (that's
+`/cloudyrion-security:threat-model`).
 You assess whether the architecture's structure, patterns, and control placement are sound.
 
 Before generating, read:
@@ -176,8 +176,8 @@ Read `references/review-checklist.md` for the detailed checks per domain.
 
 ## Step 4 — Identify Anti-Patterns
 
-Flag these common architectural anti-patterns (see `references/review-checklist.md` for
-the full catalog):
+Flag these common architectural anti-patterns (the per-domain checks in
+`references/review-checklist.md` note the anti-pattern each control prevents):
 
 | Anti-pattern | Risk | Better pattern |
 |---|---|---|
@@ -196,7 +196,14 @@ the full catalog):
 
 ## Step 5 — Severity Scoring
 
-Same Likelihood × Impact matrix as other skills.
+Rate each finding with the standard Likelihood × Impact matrix (severity ladder:
+Critical / High / Medium / Low / Info):
+
+| Likelihood ↓ / Impact → | Low | Medium | High |
+|---|---|---|---|
+| **High** | Medium | High | Critical |
+| **Medium** | Low | Medium | High |
+| **Low** | Info | Low | Medium |
 
 **Architecture-specific factors:**
 
@@ -209,16 +216,16 @@ Same Likelihood × Impact matrix as other skills.
 
 | Tag | Meaning |
 |---|---|
-| `[BLOCK]` | Fundamental design flaw — must redesign before deployment |
-| `[WARN]` | Significant weakness — should address before production |
-| `[INFO]` | Improvement opportunity — defense-in-depth enhancement |
+| `[BLOCK]` | Critical/High must-fix — fundamental design flaw, redesign before deployment |
+| `[WARN]` | Medium should-fix — significant weakness, address before production |
+| `[INFO]` | Low/Info defense-in-depth — improvement opportunity / hardening enhancement |
 
 ---
 
 ## Step 6 — Framework Traceability
 
-Map each finding to relevant framework controls. Use the `compliance-mapper` skill's
-reference data if available, or map directly:
+Map each finding to relevant framework controls. Use the `/cloudyrion-security:compliance-mapper`
+skill's reference data if available, or map directly:
 
 | Finding | ISO 27001:2022 | NIS2 | DORA | NIST CSF 2.0 | Sector-specific |
 |---------|---------------|------|------|-------------|-----------------|
@@ -228,16 +235,29 @@ reference data if available, or map directly:
 
 ## Step 7 — Generate Report
 
-Read `references/report-template.md` and write to:
-`$REPORT_DIR/security-architecture-review-${DATE}.md`
-
-Document ID: `SAR-YYYYMMDD-001`
+First, set up the report location and metadata:
 
 ```bash
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+DATE=$(date +%Y%m%d)
 REPORT_DIR="$REPO_ROOT/security-review"
 mkdir -p "$REPORT_DIR"
-DATE=$(date +%Y%m%d)
+AUTHOR_NAME=$(git config user.name 2>/dev/null || echo "N/A")
+AUTHOR_EMAIL=$(git config user.email 2>/dev/null || echo "N/A")
+REPO_NAME=$(basename "$REPO_ROOT")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "N/A")
+COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
+REPORT="$REPORT_DIR/security-architecture-review-${DATE}.md"
+```
+
+Read `references/report-template.md` and write the report to `$REPORT`.
+
+Document ID: `SAR-YYYYMMDD-001`
+
+After writing the report:
+
+```bash
+echo "Report written to: $REPORT"
 ```
 
 ### Recommended companion actions
@@ -246,12 +266,12 @@ At the end of the report, recommend which other skills should be run:
 
 | If the review found... | Recommend |
 |---|---|
-| Threat enumeration needed | → `threat-model-generator` |
-| IaC misconfigurations suspected | → `iac-security-scanner` |
-| API design concerns | → `api-security-review` |
-| Dependency/supply chain gaps | → `sbom-generator` |
-| Compliance mapping needed | → `compliance-mapper` |
-| Code-level issues suspected | → `security-code-review` |
+| Threat enumeration needed | → `/cloudyrion-security:threat-model` |
+| IaC misconfigurations suspected | → `/cloudyrion-security:iac-scanner` |
+| API design concerns | → `/cloudyrion-security:api-security` |
+| Dependency/supply chain gaps | → `/cloudyrion-security:sbom` |
+| Compliance mapping needed | → `/cloudyrion-security:compliance-mapper` |
+| Code-level issues suspected | → `/cloudyrion-security:code-review` |
 
 ---
 
@@ -269,7 +289,7 @@ At the end of the report, recommend which other skills should be run:
 ### Banking / DORA
 1. Check ICT third-party risk assessment for each external dependency
 2. Check business continuity plan covers all critical ICT services
-3. Check incident reporting timeline meets DORA 72-hour requirement
+3. Check incident reporting meets DORA deadlines: initial notification within 4h of major classification (≤24h from awareness), intermediate report within 72h, final report within 1 month
 
 ### Telco
 1. Check network function isolation (separate K8s namespaces or VMs per NF)
