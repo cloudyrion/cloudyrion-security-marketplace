@@ -24,6 +24,13 @@ Before generating, read:
 
 ## Step 1 — Gather API Context
 
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+DATE=$(date +%Y%m%d)
+REPORT_DIR="$REPO_ROOT/security-review"
+mkdir -p "$REPORT_DIR"
+```
+
 ### Inputs (at least one required)
 
 | Input type | What to extract |

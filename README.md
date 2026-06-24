@@ -154,12 +154,13 @@ claude --plugin-dir ./plugins/cloudyrion-security
 
 ## Contributing
 
-We welcome contributions! To add or improve a skill:
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions. In short:
 
 1. Fork this repository
 2. Edit skills in `plugins/cloudyrion-security/skills/<skill-name>/SKILL.md`
-3. Test locally with `claude --plugin-dir`
-4. Submit a pull request
+3. Run `./scripts/validate-plugin.sh` (also enforced in CI)
+4. Test locally with `claude --plugin-dir`
+5. Submit a pull request
 
 ## License
 

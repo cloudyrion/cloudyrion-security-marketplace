@@ -204,7 +204,7 @@ Every risk register workbook MUST contain these sheets:
 - **Auto-filter**: Enable on all columns
 - **Bold**: Risk title column always bold
 - **Column widths**: Set explicitly per column (no auto-width)
-- Save to the project's `security-review/` directory, or current working directory if no project
+- Save to the project's `security-review/` directory as `security-risk-register-YYYYMMDD.xlsx` (use the current date; fall back to the current working directory if not in a git repo)
 
 ---
 
